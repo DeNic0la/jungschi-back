@@ -1,0 +1,12 @@
+quarkus:
+  package:
+    jar:
+      enabled: true
+      type: fast-jar
+  container-image:
+    builder: jib
+    group: "denic0la"
+    name: jungschi-back
+    tag: latest
+    registry: "ghcr.io
+    push: false
