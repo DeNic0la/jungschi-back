@@ -1,17 +1,22 @@
 package ch.denic0la.model;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name="users")
-public class AppUser extends PanacheEntity {
+public class AppUser extends PanacheEntityBase {
 
-    @Column(name = "oidc_subject", nullable = false, unique = true, updatable = false)
+    @Id
+    @Column(name = "oidc_subject", nullable = false, updatable = false)
     public String oidcSubject;
 
     @Column(name = "username")
@@ -35,4 +40,6 @@ public class AppUser extends PanacheEntity {
     @Column(name = "last_seen_at", nullable = false)
     public Instant lastSeenAt;
 
+    @OneToMany(mappedBy = "user")
+    public List<Participant> participants = new ArrayList<>();
 }

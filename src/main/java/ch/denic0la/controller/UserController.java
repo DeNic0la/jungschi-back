@@ -22,7 +22,7 @@ public class UserController {
     @NoCache
     public MeDto me() {
         AppUser user = provisioningService.ensureCurrentUser();
-        return new MeDto(user.id, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName);
+        return new MeDto(user.oidcSubject, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName);
     }
 
     @PUT
@@ -39,10 +39,10 @@ public class UserController {
         if (update.lastName() != null) {
             user.lastName = update.lastName();
         }
-        return new MeDto(user.id, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName);
+        return new MeDto(user.oidcSubject, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName);
     }
 
-    public record MeDto(Long id, String oidcSubject, String username, String email, String phoneNumber, String firstName, String lastName) {}
+    public record MeDto(String id, String oidcSubject, String username, String email, String phoneNumber, String firstName, String lastName) {}
 
     public record UpdateUserDto(String phoneNumber, String firstName, String lastName) {}
 }

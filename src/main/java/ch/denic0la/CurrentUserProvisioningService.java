@@ -26,7 +26,7 @@ public class CurrentUserProvisioningService {
             throw new IllegalStateException("Missing OIDC subject claim");
         }
 
-        AppUser user = AppUser.find("oidcSubject", sub).firstResult();
+        AppUser user = AppUser.findById(sub);
         boolean isNew = false;
 
         if (user == null) {
