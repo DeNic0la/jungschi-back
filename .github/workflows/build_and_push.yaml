@@ -35,12 +35,13 @@ jobs:
         run: |
           ./gradlew build \
           -Dquarkus.container-image.build=true \
-          -Dquarkus.container-image.tag=${{ env.IMAGE_TAG }}
+          -Dquarkus.container-image.tag=${{ env.IMAGE_TAG }}\
+          -Dquarkus.container-image.push=true
       - name: Push image to Container Registry
         id: push
         run: |
-          docker push ${{ env.REGISTRY }}/${{ github.actor }}/${{ github.repository }}:${{ env.IMAGE_TAG }}
-          echo "digest=$(docker images --no-trunc --quiet ${{ env.REGISTRY }}/${{ github.actor }}/${{ github.repository }}:${{ env.IMAGE_TAG }})" >> $GITHUB_OUTPUT
+          docker push ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.IMAGE_TAG }}
+          echo "digest=$(docker images --no-trunc --quiet ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.IMAGE_TAG }})" >> $GITHUB_OUTPUT
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
