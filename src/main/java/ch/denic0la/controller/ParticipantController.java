@@ -22,6 +22,7 @@ public class ParticipantController {
     CurrentUserProvisioningService provisioningService;
 
     @GET
+    @Transactional
     public List<ParticipantDto> getAll() {
         AppUser user = provisioningService.ensureCurrentUser();
         return Participant.list("user.oidcSubject", user.oidcSubject).stream()
@@ -32,8 +33,9 @@ public class ParticipantController {
 
     @GET
     @Path("/{id}")
+    @Transactional
     public ParticipantDto getById(@PathParam("id") Long id) {
-        AppUser user = provisioningService.ensureCurrentUser();
+        AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(id);
         if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
             throw new NotFoundException("Participant not found");
@@ -75,7 +77,7 @@ public class ParticipantController {
     @Path("/{id}")
     @Transactional
     public void delete(@PathParam("id") Long id) {
-        AppUser user = provisioningService.ensureCurrentUser();
+        AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(id);
         if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
             throw new NotFoundException("Participant not found");

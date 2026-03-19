@@ -20,6 +20,7 @@ public class UserController {
     @GET
     @Path("/me")
     @NoCache
+    @Transactional
     public MeDto me() {
         AppUser user = provisioningService.ensureCurrentUser();
         return new MeDto(user.oidcSubject, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName);

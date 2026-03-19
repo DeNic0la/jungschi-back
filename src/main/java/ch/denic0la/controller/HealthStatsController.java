@@ -18,8 +18,9 @@ public class HealthStatsController {
     CurrentUserProvisioningService provisioningService;
 
     @GET
+    @Transactional
     public HealthStatsDto get(@PathParam("participantId") Long participantId) {
-        AppUser user = provisioningService.ensureCurrentUser();
+        AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
         if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
             throw new NotFoundException("Participant not found");
@@ -35,7 +36,7 @@ public class HealthStatsController {
     @PUT
     @Transactional
     public HealthStatsDto update(@PathParam("participantId") Long participantId, HealthStatsDto dto) {
-        AppUser user = provisioningService.ensureCurrentUser();
+        AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
         if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
             throw new NotFoundException("Participant not found");
@@ -54,8 +55,8 @@ public class HealthStatsController {
     }
 
     private HealthStatsDto toDto(HealthStats s) {
-        return new HealthStatsDto(s.id, s.isHealthy, s.healthyReason, s.excludedActivities);
+        return new HealthStatsDto(s.isHealthy, s.healthyReason, s.excludedActivities);
     }
 
-    public record HealthStatsDto(Long id, boolean isHealthy, String healthyReason, String excludedActivities) {}
+    public record HealthStatsDto( boolean isHealthy, String healthyReason, String excludedActivities) {}
 }

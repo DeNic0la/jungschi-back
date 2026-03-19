@@ -19,6 +19,19 @@ public class CurrentUserProvisioningService {
     @Inject
     Instance<UserInfo> userInfoInstance;
 
+    public AppUser getCurrentUser() {
+        String sub = jwt.getSubject();
+        if (sub == null || sub.isBlank()) {
+            throw new IllegalStateException("Missing OIDC subject claim");
+        }
+
+        AppUser user = AppUser.findById(sub);
+        if (user == null){
+            throw new IllegalStateException("No User found for OIDC subject: " + sub );
+        }
+        return user;
+    }
+
     @Transactional
     public AppUser ensureCurrentUser() {
         String sub = jwt.getSubject();

@@ -19,7 +19,7 @@ public class CampStatsController {
 
     @GET
     public CampStatsDto get(@PathParam("participantId") Long participantId) {
-        AppUser user = provisioningService.ensureCurrentUser();
+        AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
         if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
             throw new NotFoundException("Participant not found");
@@ -35,7 +35,7 @@ public class CampStatsController {
     @PUT
     @Transactional
     public CampStatsDto update(@PathParam("participantId") Long participantId, CampStatsDto dto) {
-        AppUser user = provisioningService.ensureCurrentUser();
+        AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
         if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
             throw new NotFoundException("Participant not found");
