@@ -12,8 +12,8 @@ public class GlobalDefinitions extends PanacheEntity {
     }
     @Column(name = "label")
     public String label;
-    @Column(name = "value")
-    public String value;
+    @Column(name = "definition_value")
+    public String definitionValue;
     @Column(name = "category")
     public Category category;
 

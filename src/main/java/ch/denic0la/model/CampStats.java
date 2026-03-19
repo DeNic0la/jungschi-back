@@ -1,22 +1,19 @@
 package ch.denic0la.model;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 
 @Entity(name = "camp_stats")
 public class CampStats extends PanacheEntity {
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "participant_id")
     public Participant participant;
 
     @Column(name = "isTickVaccinated")
     public boolean isTickVaccinated;
     @Column(name = "drugConsent")
-    public boolean drugConstent;
+    public boolean drugConsent;
     @Column(name = "ahv")
     public String ahv;
     @Column(name = "krankenkasse")

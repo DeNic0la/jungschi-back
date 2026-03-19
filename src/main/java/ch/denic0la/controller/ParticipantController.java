@@ -24,10 +24,21 @@ public class ParticipantController {
     @GET
     public List<ParticipantDto> getAll() {
         AppUser user = provisioningService.ensureCurrentUser();
-        return Participant.find("user", user).stream()
+        return Participant.list("user.oidcSubject", user.oidcSubject).stream()
                 .map(p -> (Participant) p)
                 .map(this::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @GET
+    @Path("/{id}")
+    public ParticipantDto getById(@PathParam("id") Long id) {
+        AppUser user = provisioningService.ensureCurrentUser();
+        Participant p = Participant.findById(id);
+        if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
+            throw new NotFoundException("Participant not found");
+        }
+        return toDto(p);
     }
 
     @POST

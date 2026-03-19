@@ -15,7 +15,7 @@ public class ParticipantControllerTest {
     @Test
     @TestSecurity(user = "test-user", roles = {"user"})
     @OidcSecurity(claims = {
-            @Claim(key = "sub", value = "test-oidc-sub"),
+            @Claim(key = "sub", value = "participant-test-sub"),
             @Claim(key = "preferred_username", value = "testuser")
     })
     public void testParticipantCrud() {
@@ -40,6 +40,14 @@ public class ParticipantControllerTest {
                 .body("$.size()", is(1))
                 .body("[0].firstname", is("John"))
                 .body("[0].id", is(id));
+
+        // Get By ID
+        given()
+                .when().get("/api/participants/" + id)
+                .then()
+                .statusCode(200)
+                .body("firstname", is("John"))
+                .body("id", is(id));
 
         // Update
         given()
@@ -77,5 +85,11 @@ public class ParticipantControllerTest {
                 .then()
                 .statusCode(200)
                 .body("$.size()", is(0));
+
+        // Get By ID (not found / isolation)
+        given()
+                .when().get("/api/participants/999")
+                .then()
+                .statusCode(404);
     }
 }

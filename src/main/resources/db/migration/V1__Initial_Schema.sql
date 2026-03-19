@@ -32,10 +32,10 @@ CREATE TABLE camp_stats
 
 CREATE TABLE global_definitions
 (
-    id       BIGINT NOT NULL,
-    label    VARCHAR(255),
-    value    VARCHAR(255),
-    category SMALLINT,
+    id               BIGINT NOT NULL,
+    label            VARCHAR(255),
+    definition_value VARCHAR(255),
+    category         SMALLINT,
     CONSTRAINT pk_global_definitions PRIMARY KEY (id)
 );
 
@@ -44,7 +44,7 @@ CREATE TABLE health_stats
     id                  BIGINT NOT NULL,
     participant_id      BIGINT,
     isHealthy           BOOLEAN,
-    helthy_reason       VARCHAR(255),
+    healthy_reason       VARCHAR(255),
     excluded_activities VARCHAR(255),
     CONSTRAINT pk_health_stats PRIMARY KEY (id)
 );
@@ -62,7 +62,7 @@ CREATE TABLE participants
 
 CREATE TABLE users
 (
-    oidc_subject VARCHAR(255) NOT NULL,
+    oidc_subject VARCHAR(255)                NOT NULL,
     username     VARCHAR(255),
     email        VARCHAR(255),
     first_name   VARCHAR(255),
@@ -72,6 +72,12 @@ CREATE TABLE users
     last_seen_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     CONSTRAINT pk_users PRIMARY KEY (oidc_subject)
 );
+
+ALTER TABLE camp_stats
+    ADD CONSTRAINT uc_camp_stats_participant UNIQUE (participant_id);
+
+ALTER TABLE health_stats
+    ADD CONSTRAINT uc_health_stats_participant UNIQUE (participant_id);
 
 ALTER TABLE camp_stats
     ADD CONSTRAINT FK_CAMP_STATS_ON_PARTICIPANT FOREIGN KEY (participant_id) REFERENCES participants (id);
