@@ -62,10 +62,12 @@ public class CurrentUserProvisioningService {
                 stringClaim("family_name"),
                 userInfoString("family_name")
         );
-        user.phoneNumber = firstNonBlank(
-                stringClaim("phone_number"),
-                userInfoString("phone_number")
-        );
+        if (user.phoneNumber == null || user.phoneNumber.isBlank()){
+            user.phoneNumber = firstNonBlank(
+                    stringClaim("phone_number"),
+                    userInfoString("phone_number")
+            );
+        }
         user.lastSeenAt = Instant.now();
 
         if (isNew) {

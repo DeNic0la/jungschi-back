@@ -5,7 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 
 @Entity(name = "global_definitions")
-public class GlobalDefinitions extends PanacheEntity {
+public class GlobalIntoleranceDefinitions extends PanacheEntity {
     public enum Category {
         FoodIntolerance,
         AllergyDefinition

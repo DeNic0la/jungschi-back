@@ -1,6 +1,6 @@
 package ch.denic0la.controller;
 
-import ch.denic0la.model.GlobalDefinitions;
+import ch.denic0la.model.GlobalIntoleranceDefinitions;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.oidc.Claim;
@@ -13,20 +13,20 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
 
 @QuarkusTest
-public class GlobalDefinitionsControllerTest {
+public class GlobalIntoleranceDefinitionsControllerTest {
 
     @BeforeEach
     @Transactional
     public void setup() {
-        GlobalDefinitions.deleteAll();
+        GlobalIntoleranceDefinitions.deleteAll();
 
-        createDefinition("Z-Label", "z-val", GlobalDefinitions.Category.FoodIntolerance);
-        createDefinition("A-Label", "a-val", GlobalDefinitions.Category.FoodIntolerance);
-        createDefinition("Allergy-Label", "allergy-val", GlobalDefinitions.Category.AllergyDefinition);
+        createDefinition("Z-Label", "z-val", GlobalIntoleranceDefinitions.Category.FoodIntolerance);
+        createDefinition("A-Label", "a-val", GlobalIntoleranceDefinitions.Category.FoodIntolerance);
+        createDefinition("Allergy-Label", "allergy-val", GlobalIntoleranceDefinitions.Category.AllergyDefinition);
     }
 
-    private void createDefinition(String label, String value, GlobalDefinitions.Category category) {
-        GlobalDefinitions def = new GlobalDefinitions();
+    private void createDefinition(String label, String value, GlobalIntoleranceDefinitions.Category category) {
+        GlobalIntoleranceDefinitions def = new GlobalIntoleranceDefinitions();
         def.label = label;
         def.definitionValue = value;
         def.category = category;

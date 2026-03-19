@@ -1,6 +1,6 @@
 package ch.denic0la.controller;
 
-import ch.denic0la.model.GlobalDefinitions;
+import ch.denic0la.model.GlobalIntoleranceDefinitions;
 import io.quarkus.panache.common.Sort;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
@@ -19,7 +19,7 @@ public class GlobalDefinitionsController {
     @Path("/food-intolerances")
     @Transactional
     public List<GlobalDefinitionDto> getFoodIntolerances() {
-        List<GlobalDefinitions> definitions = GlobalDefinitions.find("category", Sort.by("label"), GlobalDefinitions.Category.FoodIntolerance).list();
+        List<GlobalIntoleranceDefinitions> definitions = GlobalIntoleranceDefinitions.find("category", Sort.by("label"), GlobalIntoleranceDefinitions.Category.FoodIntolerance).list();
         return definitions.stream()
                 .map(this::toDto)
                 .toList();
@@ -29,13 +29,13 @@ public class GlobalDefinitionsController {
     @Path("/allergies")
     @Transactional
     public List<GlobalDefinitionDto> getAllergies() {
-        List<GlobalDefinitions> definitions = GlobalDefinitions.find("category", Sort.by("label"), GlobalDefinitions.Category.AllergyDefinition).list();
+        List<GlobalIntoleranceDefinitions> definitions = GlobalIntoleranceDefinitions.find("category", Sort.by("label"), GlobalIntoleranceDefinitions.Category.AllergyDefinition).list();
         return definitions.stream()
                 .map(this::toDto)
                 .toList();
     }
 
-    private GlobalDefinitionDto toDto(GlobalDefinitions d) {
+    private GlobalDefinitionDto toDto(GlobalIntoleranceDefinitions d) {
         return new GlobalDefinitionDto(d.id, d.label, d.definitionValue);
     }
 

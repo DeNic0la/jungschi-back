@@ -1,8 +1,7 @@
 package ch.denic0la.controller;
 
-import ch.denic0la.model.GlobalDefinitions;
+import ch.denic0la.model.GlobalIntoleranceDefinitions;
 import ch.denic0la.model.IntoleranceSelection;
-import ch.denic0la.model.Participant;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.oidc.Claim;
@@ -25,14 +24,14 @@ public class IntoleranceSelectionControllerTest {
     @Transactional
     public void setup() {
         IntoleranceSelection.deleteAll();
-        GlobalDefinitions.deleteAll();
+        GlobalIntoleranceDefinitions.deleteAll();
         
-        lactoseId = createDefinition("Lactose", "LAC", GlobalDefinitions.Category.FoodIntolerance);
-        glutenId = createDefinition("Gluten", "GLU", GlobalDefinitions.Category.FoodIntolerance);
+        lactoseId = createDefinition("Lactose", "LAC", GlobalIntoleranceDefinitions.Category.FoodIntolerance);
+        glutenId = createDefinition("Gluten", "GLU", GlobalIntoleranceDefinitions.Category.FoodIntolerance);
     }
 
-    private Long createDefinition(String label, String value, GlobalDefinitions.Category category) {
-        GlobalDefinitions def = new GlobalDefinitions();
+    private Long createDefinition(String label, String value, GlobalIntoleranceDefinitions.Category category) {
+        GlobalIntoleranceDefinitions def = new GlobalIntoleranceDefinitions();
         def.label = label;
         def.definitionValue = value;
         def.category = category;

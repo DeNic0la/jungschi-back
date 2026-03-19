@@ -2,7 +2,7 @@ package ch.denic0la.controller;
 
 import ch.denic0la.CurrentUserProvisioningService;
 import ch.denic0la.model.AppUser;
-import ch.denic0la.model.GlobalDefinitions;
+import ch.denic0la.model.GlobalIntoleranceDefinitions;
 import ch.denic0la.model.IntoleranceSelection;
 import ch.denic0la.model.Participant;
 import jakarta.inject.Inject;
@@ -47,7 +47,7 @@ public class IntoleranceSelectionController {
 
         IntoleranceSelection selection;
         if (dto.intoleranceId() != null) {
-            GlobalDefinitions intolerance = GlobalDefinitions.findById(dto.intoleranceId());
+            GlobalIntoleranceDefinitions intolerance = GlobalIntoleranceDefinitions.findById(dto.intoleranceId());
             if (intolerance == null) {
                 throw new NotFoundException("GlobalDefinition not found");
             }
@@ -84,7 +84,7 @@ public class IntoleranceSelectionController {
         }
 
         if (intoleranceId != null) {
-            GlobalDefinitions intolerance = GlobalDefinitions.findById(intoleranceId);
+            GlobalIntoleranceDefinitions intolerance = GlobalIntoleranceDefinitions.findById(intoleranceId);
             if (intolerance == null) {
                 throw new NotFoundException("GlobalDefinition not found");
             }

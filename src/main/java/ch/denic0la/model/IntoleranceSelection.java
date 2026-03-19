@@ -17,7 +17,7 @@ public class IntoleranceSelection extends PanacheEntity {
 
     @ManyToOne
     @JoinColumn(name = "intolerance_id")
-    public GlobalDefinitions intolerance;
+    public GlobalIntoleranceDefinitions intolerance;
 
     @Column(name = "custom_text")
     public String customText;

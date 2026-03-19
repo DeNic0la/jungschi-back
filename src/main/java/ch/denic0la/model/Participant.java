@@ -1,13 +1,12 @@
 package ch.denic0la.model;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity(name = "participants")
 public class Participant extends PanacheEntity {
@@ -24,5 +23,14 @@ public class Participant extends PanacheEntity {
     @ManyToOne
     @JoinColumn(name = "app_user_id")
     public AppUser user;
+
+    @OneToOne(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
+    public HealthStats healthStats;
+
+    @OneToOne(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
+    public CampStats campStats;
+
+    @OneToMany(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
+    public List<IntoleranceSelection> intoleranceSelections = new ArrayList<>();
 
 }
