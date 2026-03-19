@@ -72,6 +72,12 @@ public class HealthStatsControllerTest {
             @Claim(key = "preferred_username", value = "user2")
     })
     public void testHealthStatsIsolation() {
+        // Provision the user first
+        given()
+                .when().get("/api/users/me")
+                .then()
+                .statusCode(200);
+
         given()
                 .when().get("/api/participants/999/health-stats")
                 .then()

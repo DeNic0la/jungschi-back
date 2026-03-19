@@ -2,6 +2,8 @@ package ch.denic0la.controller;
 
 import ch.denic0la.CurrentUserProvisioningService;
 import ch.denic0la.model.AppUser;
+import ch.denic0la.model.CampStats;
+import ch.denic0la.model.HealthStats;
 import ch.denic0la.model.Participant;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -41,6 +43,20 @@ public class ParticipantController {
             throw new NotFoundException("Participant not found");
         }
         return toDto(p);
+    }
+
+    @GET
+    @Path("/{id}/info")
+    @Transactional
+    public ParticipantInfoDto getInfoById(@PathParam("id") Long id) {
+        AppUser user = provisioningService.getCurrentUser();
+        Participant p = Participant.findById(id);
+        if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
+            throw new NotFoundException("Participant not found");
+        }
+        boolean hasHealthStats = HealthStats.count("participant", p) > 0;
+        boolean hasCampStats = CampStats.count("participant", p) > 0;
+        return toInfoDto(p, hasHealthStats, hasCampStats);
     }
 
     @POST
@@ -89,5 +105,11 @@ public class ParticipantController {
         return new ParticipantDto(p.id, p.firstname, p.lastname, p.dateOfBirth, p.lastUpdatedAt);
     }
 
+    private ParticipantInfoDto toInfoDto(Participant p, boolean healthStats, boolean campStats) {
+        return new ParticipantInfoDto(p.id, p.firstname, p.lastname, p.dateOfBirth, p.lastUpdatedAt, healthStats, campStats);
+    }
+
     public record ParticipantDto(Long id, String firstname, String lastname, LocalDate dateOfBirth, LocalDateTime lastUpdatedAt) {}
+
+    public record ParticipantInfoDto(Long id, String firstname, String lastname, LocalDate dateOfBirth, LocalDateTime lastUpdatedAt, boolean healthStats, boolean campStats) {}
 }

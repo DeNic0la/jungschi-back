@@ -74,6 +74,71 @@ public class ParticipantControllerTest {
     }
 
     @Test
+    @TestSecurity(user = "test-user", roles = {"user"})
+    @OidcSecurity(claims = {
+            @Claim(key = "sub", value = "participant-test-sub"),
+            @Claim(key = "preferred_username", value = "testuser")
+    })
+    public void testParticipantInfo() {
+        // Create a participant
+        Integer idInt = given()
+                .contentType("application/json")
+                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\"}")
+                .when().post("/api/participants")
+                .then()
+                .statusCode(200)
+                .extract().path("id");
+        Long id = idInt.longValue();
+
+        // Get Info (should have both false)
+        given()
+                .when().get("/api/participants/" + id + "/info")
+                .then()
+                .statusCode(200)
+                .body("firstname", is("John"))
+                .body("healthStats", is(false))
+                .body("campStats", is(false));
+
+        // Create health stats for this participant
+        given()
+                .contentType("application/json")
+                .body("{\"isHealthy\": true, \"healthyReason\": \"\", \"excludedActivities\": \"\"}")
+                .when().put("/api/participants/" + id + "/health-stats")
+                .then()
+                .statusCode(200);
+
+        // Get Info (healthStats should be true)
+        given()
+                .when().get("/api/participants/" + id + "/info")
+                .then()
+                .statusCode(200)
+                .body("healthStats", is(true))
+                .body("campStats", is(false));
+
+        // Create camp stats for this participant
+        given()
+                .contentType("application/json")
+                .body("{\"isTickVaccinated\": true, \"drugConsent\": true, \"ahv\": \"123\", \"krankenkasse\": \"AOK\", \"notes\": \"\"}")
+                .when().put("/api/participants/" + id + "/camp-stats")
+                .then()
+                .statusCode(200);
+
+        // Get Info (both should be true)
+        given()
+                .when().get("/api/participants/" + id + "/info")
+                .then()
+                .statusCode(200)
+                .body("healthStats", is(true))
+                .body("campStats", is(true));
+
+        // Get info of non-existent participant
+        given()
+                .when().get("/api/participants/999/info")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
     @TestSecurity(user = "other-user", roles = {"user"})
     @OidcSecurity(claims = {
             @Claim(key = "sub", value = "user2"),

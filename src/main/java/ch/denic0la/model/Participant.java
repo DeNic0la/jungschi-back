@@ -24,4 +24,5 @@ public class Participant extends PanacheEntity {
     @ManyToOne
     @JoinColumn(name = "app_user_id")
     public AppUser user;
+
 }

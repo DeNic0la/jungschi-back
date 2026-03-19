@@ -74,6 +74,12 @@ public class CampStatsControllerTest {
             @Claim(key = "preferred_username", value = "user2")
     })
     public void testIsolation() {
+        // Provision the user first
+        given()
+                .when().get("/api/users/me")
+                .then()
+                .statusCode(200);
+
         // Try to access participant 1 (from previous test) which belongs to "test-oidc-sub"
         // Since database might be shared in QuarkusTest without clean between tests if not careful,
         // but typically it's cleaned or at least we can assume some ID exists.

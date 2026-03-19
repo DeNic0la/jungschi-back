@@ -56,8 +56,8 @@ public class CampStatsController {
     }
 
     private CampStatsDto toDto(CampStats s) {
-        return new CampStatsDto(s.id, s.isTickVaccinated, s.drugConsent, s.ahv, s.krankenkasse, s.notes);
+        return new CampStatsDto( s.isTickVaccinated, s.drugConsent, s.ahv, s.krankenkasse, s.notes);
     }
 
-    public record CampStatsDto(Long id, boolean isTickVaccinated, boolean drugConsent, String ahv, String krankenkasse, String notes) {}
+    public record CampStatsDto( boolean isTickVaccinated, boolean drugConsent, String ahv, String krankenkasse, String notes) {}
 }
