@@ -37,7 +37,7 @@ jobs:
         run: |
           ./gradlew build \
           -Dquarkus.container-image.build=true \
-          -Dquarkus.container-image.tag=${{ env.IMAGE_TAG }}\
+          -Dquarkus.container-image.tag=${{ env.IMAGE_TAG }} \
           -Dquarkus.container-image.push=true
       - name: Push image to Container Registry
         id: push
