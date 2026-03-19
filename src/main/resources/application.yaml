@@ -8,5 +8,5 @@ quarkus:
     group: "denic0la"
     name: jungschi-back
     tag: latest
-    registry: "ghcr.io
+    registry: "ghcr.io"
     push: false
