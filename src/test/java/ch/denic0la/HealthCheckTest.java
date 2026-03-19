@@ -16,6 +16,26 @@ public class HealthCheckTest {
                 .then()
                 .statusCode(200)
                 .body("status", is("UP"))
-                .body("checks[0].name", is("alive"));
+                .body("checks.name", org.hamcrest.Matchers.hasItem("alive"));
+    }
+
+    @Test
+    public void testReadiness() {
+        given()
+                .when().get("/q/health/ready")
+                .then()
+                .statusCode(200)
+                .body("status", is("UP"))
+                .body("checks.name", org.hamcrest.Matchers.hasItem("database-migration"));
+    }
+
+    @Test
+    public void testStartup() {
+        given()
+                .when().get("/q/health/started")
+                .then()
+                .statusCode(200)
+                .body("status", is("UP"))
+                .body("checks.name", org.hamcrest.Matchers.hasItem("application-started"));
     }
 }
