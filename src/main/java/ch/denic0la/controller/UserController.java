@@ -31,7 +31,7 @@ public class UserController {
     @Transactional
     public MeDto updateMe(UpdateUserDto update) {
         AppUser user = provisioningService.ensureCurrentUser();
-        if (update.phoneNumber() != null) {
+        if (update.phoneNumber() != null && !update.phoneNumber().isBlank()) {
             user.phoneNumber = update.phoneNumber();
         }
         if (update.firstName() != null) {
@@ -40,6 +40,7 @@ public class UserController {
         if (update.lastName() != null) {
             user.lastName = update.lastName();
         }
+        user.persist();
         return new MeDto(user.oidcSubject, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName);
     }
 
