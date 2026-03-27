@@ -50,14 +50,16 @@ public class CampStatsController {
         stats.drugConsent = dto.drugConsent();
         stats.ahv = dto.ahv();
         stats.krankenkasse = dto.krankenkasse();
+        stats.krankenkassenNr = dto.krankenkassenNr();
+        stats.medication = dto.medication();
         stats.notes = dto.notes();
         stats.persist();
         return toDto(stats);
     }
 
     private CampStatsDto toDto(CampStats s) {
-        return new CampStatsDto( s.isTickVaccinated, s.drugConsent, s.ahv, s.krankenkasse, s.notes);
+        return new CampStatsDto( s.isTickVaccinated, s.drugConsent, s.ahv, s.krankenkasse, s.krankenkassenNr, s.medication, s.notes);
     }
 
-    public record CampStatsDto( boolean isTickVaccinated, boolean drugConsent, String ahv, String krankenkasse, String notes) {}
+    public record CampStatsDto( boolean isTickVaccinated, boolean drugConsent, String ahv, String krankenkasse, String krankenkassenNr, String medication, String notes) {}
 }

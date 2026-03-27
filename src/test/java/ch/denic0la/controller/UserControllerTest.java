@@ -45,12 +45,13 @@ public class UserControllerTest {
     public void testUpdateMe() {
         given()
                 .contentType("application/json")
-                .body("{\"firstName\": \"NewFirst\", \"lastName\": \"NewLast\", \"phoneNumber\": \"987654321\"}")
+                .body("{\"firstName\": \"NewFirst\", \"lastName\": \"NewLast\", \"phoneNumber\": \"987654321\", \"address\": \"NewAddress\"}")
                 .when().put("/api/users/me")
                 .then()
                 .statusCode(200)
                 .body("firstName", is("NewFirst"))
                 .body("lastName", is("NewLast"))
-                .body("phoneNumber", is("987654321"));
+                .body("phoneNumber", is("987654321"))
+                .body("address", is("NewAddress"));
     }
 }

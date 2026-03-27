@@ -18,6 +18,10 @@ public class CampStats extends PanacheEntity {
     public String ahv;
     @Column(name = "krankenkasse")
     public String krankenkasse;
+    @Column(name = "krankenkassenNr")
+    public String krankenkassenNr;
+    @Column(name = "medication")
+    public String medication;
 
     @Column(name = "notes")
     public String notes;

@@ -41,9 +41,9 @@ public class TeamParticipantsController {
     }
 
     private DetailedParticipantDto toDetailedDto(Participant p) {
-        AppUserDto userDto = p.user != null ? new AppUserDto(p.user.firstName, p.user.lastName, p.user.email,p.user.phoneNumber) : null;
+        AppUserDto userDto = p.user != null ? new AppUserDto(p.user.firstName, p.user.lastName, p.user.email, p.user.phoneNumber, p.user.address) : null;
         HealthStatsDto healthStatsDto = p.healthStats != null ? new HealthStatsDto(p.healthStats.isHealthy, p.healthStats.healthyReason, p.healthStats.excludedActivities) : null;
-        CampStatsDto campStatsDto = p.campStats != null ? new CampStatsDto(p.campStats.isTickVaccinated, p.campStats.drugConsent, p.campStats.ahv, p.campStats.krankenkasse, p.campStats.notes) : null;
+        CampStatsDto campStatsDto = p.campStats != null ? new CampStatsDto(p.campStats.isTickVaccinated, p.campStats.drugConsent, p.campStats.ahv, p.campStats.krankenkasse, p.campStats.krankenkassenNr, p.campStats.medication, p.campStats.notes) : null;
         List<IntoleranceSelectionDto> intoleranceSelectionDtos = p.intoleranceSelections.stream()
                 .map(i -> {
                     IntoleranceDto intoleranceDto = null;
@@ -75,11 +75,11 @@ public class TeamParticipantsController {
             List<IntoleranceSelectionDto> intoleranceSelections
     ) {}
 
-    public record AppUserDto(String firstName, String lastName, String email,String phoneNumber) {}
+    public record AppUserDto(String firstName, String lastName, String email, String phoneNumber, String address) {}
 
     public record HealthStatsDto(boolean isHealthy, String healthyReason, String excludedActivities) {}
 
-    public record CampStatsDto(boolean isTickVaccinated, boolean drugConsent, String ahv, String krankenkasse, String notes) {}
+    public record CampStatsDto(boolean isTickVaccinated, boolean drugConsent, String ahv, String krankenkasse, String krankenkassenNr, String medication, String notes) {}
 
     public record IntoleranceSelectionDto(Long id, IntoleranceDto intolerance, String customText, String severity) {}
 

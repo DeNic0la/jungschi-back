@@ -38,7 +38,7 @@ public class CampStatsControllerTest {
         // 3. Create/Update camp stats
         given()
                 .contentType("application/json")
-                .body("{\"isTickVaccinated\": true, \"drugConsent\": true, \"ahv\": \"123\", \"krankenkasse\": \"KK\", \"notes\": \"None\"}")
+                .body("{\"isTickVaccinated\": true, \"drugConsent\": true, \"ahv\": \"123\", \"krankenkasse\": \"KK\", \"krankenkassenNr\": \"K123\", \"medication\": \"Med1\", \"notes\": \"None\"}")
                 .when().put("/api/participants/" + participantId + "/camp-stats")
                 .then()
                 .statusCode(200)
@@ -46,6 +46,8 @@ public class CampStatsControllerTest {
                 .body("drugConsent", is(true))
                 .body("ahv", is("123"))
                 .body("krankenkasse", is("KK"))
+                .body("krankenkassenNr", is("K123"))
+                .body("medication", is("Med1"))
                 .body("notes", is("None"));
 
         // 4. Get again
@@ -54,17 +56,21 @@ public class CampStatsControllerTest {
                 .then()
                 .statusCode(200)
                 .body("isTickVaccinated", is(true))
-                .body("ahv", is("123"));
+                .body("ahv", is("123"))
+                .body("krankenkassenNr", is("K123"))
+                .body("medication", is("Med1"));
 
         // 5. Update again
         given()
                 .contentType("application/json")
-                .body("{\"isTickVaccinated\": false, \"drugConsent\": false, \"ahv\": \"456\", \"krankenkasse\": \"KK2\", \"notes\": \"Some\"}")
+                .body("{\"isTickVaccinated\": false, \"drugConsent\": false, \"ahv\": \"456\", \"krankenkasse\": \"KK2\", \"krankenkassenNr\": \"K456\", \"medication\": \"Med2\", \"notes\": \"Some\"}")
                 .when().put("/api/participants/" + participantId + "/camp-stats")
                 .then()
                 .statusCode(200)
                 .body("isTickVaccinated", is(false))
-                .body("ahv", is("456"));
+                .body("ahv", is("456"))
+                .body("krankenkassenNr", is("K456"))
+                .body("medication", is("Med2"));
     }
 
     @Test

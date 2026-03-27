@@ -39,8 +39,11 @@ public class TeamParticipantsControllerTest {
                 .body("firstname", is("John"))
                 .body("lastname", is("Doe"))
                 .body("user", notNullValue())
-                .body("healthStats", anyOf(nullValue(), notNullValue()))
+                .body("user.address", anyOf(nullValue(), notNullValue()))
                 .body("campStats", anyOf(nullValue(), notNullValue()))
+                .body("campStats.krankenkassenNr", anyOf(nullValue(), notNullValue()))
+                .body("campStats.medication", anyOf(nullValue(), notNullValue()))
+                .body("healthStats", anyOf(nullValue(), notNullValue()))
                 .body("intoleranceSelections", notNullValue());
     }
 

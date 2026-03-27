@@ -34,6 +34,9 @@ public class AppUser extends PanacheEntityBase {
     @Column(name = "last_name")
     public String lastName;
 
+    @Column(name = "address")
+    public String address;
+
     @Column(name = "created_at", nullable = false)
     public Instant createdAt;
 
