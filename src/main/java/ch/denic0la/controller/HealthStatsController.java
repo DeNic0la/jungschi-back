@@ -4,6 +4,7 @@ import ch.denic0la.CurrentUserProvisioningService;
 import ch.denic0la.model.AppUser;
 import ch.denic0la.model.HealthStats;
 import ch.denic0la.model.Participant;
+import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
@@ -12,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 @Path("/api/participants/{participantId}/health-stats")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated
 public class HealthStatsController {
 
     @Inject
@@ -22,7 +24,7 @@ public class HealthStatsController {
     public HealthStatsDto get(@PathParam("participantId") Long participantId) {
         AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
-        if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
+        if (!provisioningService.canReadParticipant(p, user)) {
             throw new NotFoundException("Participant not found");
         }
 
@@ -38,7 +40,7 @@ public class HealthStatsController {
     public HealthStatsDto update(@PathParam("participantId") Long participantId, HealthStatsDto dto) {
         AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
-        if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
+        if (!provisioningService.canWriteParticipant(p, user)) {
             throw new NotFoundException("Participant not found");
         }
 

@@ -22,6 +22,14 @@ public class CampStats extends PanacheEntity {
     public String krankenkassenNr;
     @Column(name = "medication")
     public String medication;
+    @Column(name = "familyDoctor")
+    public String familyDoctor;
+    @Column(name = "nationality")
+    public String nationality;
+    @Column(name = "native_language")
+    public String nativeLanguage;
+    @Column(name = "food_preferences")
+    public String foodPreferences;
 
     @Column(name = "notes")
     public String notes;

@@ -23,7 +23,7 @@ public class TeamParticipantsControllerTest {
         Integer idInt = given()
                 .auth().preemptive().oauth2("anything") // Placeholder, @TestSecurity handles it
                 .contentType("application/json")
-                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\"}")
+                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\", \"gender\": \"male\"}")
                 .when().post("/api/participants")
                 .then()
                 .statusCode(200)
@@ -38,11 +38,15 @@ public class TeamParticipantsControllerTest {
                 .body("id", is(idInt))
                 .body("firstname", is("John"))
                 .body("lastname", is("Doe"))
+                .body("gender", is("male"))
                 .body("user", notNullValue())
                 .body("user.address", anyOf(nullValue(), notNullValue()))
                 .body("campStats", anyOf(nullValue(), notNullValue()))
                 .body("campStats.krankenkassenNr", anyOf(nullValue(), notNullValue()))
                 .body("campStats.medication", anyOf(nullValue(), notNullValue()))
+                .body("campStats.nationality", anyOf(nullValue(), notNullValue()))
+                .body("campStats.nativeLanguage", anyOf(nullValue(), notNullValue()))
+                .body("campStats.foodPreferences", anyOf(nullValue(), notNullValue()))
                 .body("healthStats", anyOf(nullValue(), notNullValue()))
                 .body("intoleranceSelections", notNullValue());
     }

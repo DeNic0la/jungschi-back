@@ -23,7 +23,7 @@ public class CampStatsControllerTest {
         // 1. Create a participant
         Long participantId = ((Number) given()
                 .contentType("application/json")
-                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\"}")
+                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\", \"gender\": \"male\"}")
                 .when().post("/api/participants")
                 .then()
                 .statusCode(200)
@@ -38,7 +38,7 @@ public class CampStatsControllerTest {
         // 3. Create/Update camp stats
         given()
                 .contentType("application/json")
-                .body("{\"isTickVaccinated\": true, \"drugConsent\": true, \"ahv\": \"123\", \"krankenkasse\": \"KK\", \"krankenkassenNr\": \"K123\", \"medication\": \"Med1\", \"notes\": \"None\"}")
+                .body("{\"isTickVaccinated\": true, \"drugConsent\": true, \"ahv\": \"123\", \"krankenkasse\": \"KK\", \"krankenkassenNr\": \"K123\", \"medication\": \"Med1\", \"familyDoctor\": \"Dr. Smith\", \"nationality\": \"Swiss\", \"nativeLanguage\": \"de\", \"foodPreferences\": \"vegetarian\", \"notes\": \"None\"}")
                 .when().put("/api/participants/" + participantId + "/camp-stats")
                 .then()
                 .statusCode(200)
@@ -48,6 +48,10 @@ public class CampStatsControllerTest {
                 .body("krankenkasse", is("KK"))
                 .body("krankenkassenNr", is("K123"))
                 .body("medication", is("Med1"))
+                .body("familyDoctor", is("Dr. Smith"))
+                .body("nationality", is("Swiss"))
+                .body("nativeLanguage", is("de"))
+                .body("foodPreferences", is("vegetarian"))
                 .body("notes", is("None"));
 
         // 4. Get again
@@ -58,19 +62,27 @@ public class CampStatsControllerTest {
                 .body("isTickVaccinated", is(true))
                 .body("ahv", is("123"))
                 .body("krankenkassenNr", is("K123"))
-                .body("medication", is("Med1"));
+                .body("medication", is("Med1"))
+                .body("familyDoctor", is("Dr. Smith"))
+                .body("nationality", is("Swiss"))
+                .body("nativeLanguage", is("de"))
+                .body("foodPreferences", is("vegetarian"));
 
         // 5. Update again
         given()
                 .contentType("application/json")
-                .body("{\"isTickVaccinated\": false, \"drugConsent\": false, \"ahv\": \"456\", \"krankenkasse\": \"KK2\", \"krankenkassenNr\": \"K456\", \"medication\": \"Med2\", \"notes\": \"Some\"}")
+                .body("{\"isTickVaccinated\": false, \"drugConsent\": false, \"ahv\": \"456\", \"krankenkasse\": \"KK2\", \"krankenkassenNr\": \"K456\", \"medication\": \"Med2\", \"familyDoctor\": \"Dr. Jones\", \"nationality\": \"German\", \"nativeLanguage\": \"en\", \"foodPreferences\": \"vegan\", \"notes\": \"Some\"}")
                 .when().put("/api/participants/" + participantId + "/camp-stats")
                 .then()
                 .statusCode(200)
                 .body("isTickVaccinated", is(false))
                 .body("ahv", is("456"))
                 .body("krankenkassenNr", is("K456"))
-                .body("medication", is("Med2"));
+                .body("medication", is("Med2"))
+                .body("familyDoctor", is("Dr. Jones"))
+                .body("nationality", is("German"))
+                .body("nativeLanguage", is("en"))
+                .body("foodPreferences", is("vegan"));
     }
 
     @Test

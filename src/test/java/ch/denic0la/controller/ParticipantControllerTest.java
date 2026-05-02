@@ -22,13 +22,14 @@ public class ParticipantControllerTest {
         // Create
         Object id = given()
                 .contentType("application/json")
-                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\"}")
+                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\", \"gender\": \"male\"}")
                 .when().post("/api/participants")
                 .then()
                 .statusCode(200)
                 .body("firstname", is("John"))
                 .body("lastname", is("Doe"))
                 .body("dateOfBirth", is("2000-01-01"))
+                .body("gender", is("male"))
                 .body("id", notNullValue())
                 .extract().path("id");
 
@@ -47,16 +48,18 @@ public class ParticipantControllerTest {
                 .then()
                 .statusCode(200)
                 .body("firstname", is("John"))
+                .body("gender", is("male"))
                 .body("id", is(id));
 
         // Update
         given()
                 .contentType("application/json")
-                .body("{\"firstname\": \"Jane\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\"}")
+                .body("{\"firstname\": \"Jane\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\", \"gender\": \"female\"}")
                 .when().put("/api/participants/" + id)
                 .then()
                 .statusCode(200)
                 .body("firstname", is("Jane"))
+                .body("gender", is("female"))
                 .body("id", is(id));
 
         // Delete
@@ -83,7 +86,7 @@ public class ParticipantControllerTest {
         // Create a participant
         Integer idInt = given()
                 .contentType("application/json")
-                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\"}")
+                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\", \"gender\": \"male\"}")
                 .when().post("/api/participants")
                 .then()
                 .statusCode(200)
@@ -96,6 +99,7 @@ public class ParticipantControllerTest {
                 .then()
                 .statusCode(200)
                 .body("firstname", is("John"))
+                .body("gender", is("male"))
                 .body("healthStats", is(false))
                 .body("campStats", is(false));
 

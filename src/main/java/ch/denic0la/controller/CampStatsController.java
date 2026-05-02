@@ -4,6 +4,7 @@ import ch.denic0la.CurrentUserProvisioningService;
 import ch.denic0la.model.AppUser;
 import ch.denic0la.model.CampStats;
 import ch.denic0la.model.Participant;
+import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
@@ -12,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 @Path("/api/participants/{participantId}/camp-stats")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated
 public class CampStatsController {
 
     @Inject
@@ -21,7 +23,7 @@ public class CampStatsController {
     public CampStatsDto get(@PathParam("participantId") Long participantId) {
         AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
-        if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
+        if (!provisioningService.canReadParticipant(p, user)) {
             throw new NotFoundException("Participant not found");
         }
 
@@ -37,7 +39,7 @@ public class CampStatsController {
     public CampStatsDto update(@PathParam("participantId") Long participantId, CampStatsDto dto) {
         AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
-        if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
+        if (!provisioningService.canWriteParticipant(p, user)) {
             throw new NotFoundException("Participant not found");
         }
 
@@ -52,14 +54,40 @@ public class CampStatsController {
         stats.krankenkasse = dto.krankenkasse();
         stats.krankenkassenNr = dto.krankenkassenNr();
         stats.medication = dto.medication();
+        stats.familyDoctor = dto.familyDoctor();
+        stats.nationality = dto.nationality();
+        stats.nativeLanguage = dto.nativeLanguage();
+        stats.foodPreferences = dto.foodPreferences();
         stats.notes = dto.notes();
         stats.persist();
         return toDto(stats);
     }
 
     private CampStatsDto toDto(CampStats s) {
-        return new CampStatsDto( s.isTickVaccinated, s.drugConsent, s.ahv, s.krankenkasse, s.krankenkassenNr, s.medication, s.notes);
+        return new CampStatsDto(
+                s.isTickVaccinated,
+                s.drugConsent,
+                s.ahv,
+                s.krankenkasse,
+                s.krankenkassenNr,
+                s.medication,
+                s.familyDoctor,
+                s.nationality,
+                s.nativeLanguage,
+                s.foodPreferences,
+                s.notes);
     }
 
-    public record CampStatsDto( boolean isTickVaccinated, boolean drugConsent, String ahv, String krankenkasse, String krankenkassenNr, String medication, String notes) {}
+    public record CampStatsDto(
+            boolean isTickVaccinated,
+            boolean drugConsent,
+            String ahv,
+            String krankenkasse,
+            String krankenkassenNr,
+            String medication,
+            String familyDoctor,
+            String nationality,
+            String nativeLanguage,
+            String foodPreferences,
+            String notes) {}
 }
