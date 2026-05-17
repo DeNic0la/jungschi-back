@@ -32,7 +32,7 @@ public class Participant extends PanacheEntity {
     public HealthStats healthStats;
 
     @OneToOne(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
-    public CampStats campStats;
+    public ParticipantGeneralData participantGeneralData;
 
     @OneToMany(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<IntoleranceSelection> intoleranceSelections = new ArrayList<>();

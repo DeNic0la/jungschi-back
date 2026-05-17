@@ -26,7 +26,6 @@ public class UserControllerTest {
                 .statusCode(200)
                 .body("username", is("testuser"))
                 .body("email", is("test@example.com"))
-                .body("oidcSubject", is("test-oidc-sub"))
                 .body("id", is("test@example.com"));
     }
 
@@ -40,7 +39,7 @@ public class UserControllerTest {
             @Claim(key = "family_name", value = "Admin"),
             @Claim(key = "phone_number", value = "+41791234569")
     })
-    public void testMeEndpointWithoutSubjectClaimUsesStableFallback() {
+    public void testMeEndpointWithoutSubjectClaimUsesProfileClaims() {
         given()
                 .when().get("/api/users/me")
                 .then()
@@ -50,7 +49,6 @@ public class UserControllerTest {
                 .body("firstName", is("Ada"))
                 .body("lastName", is("Admin"))
                 .body("phoneNumber", is("+41791234569"))
-                .body("oidcSubject", is("http://localhost:8180/realms/jungschi|admin"))
                 .body("id", is("admin@example.com"));
     }
 

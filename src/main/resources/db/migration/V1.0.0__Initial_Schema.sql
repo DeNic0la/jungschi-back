@@ -1,3 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS reporting;
+
 CREATE SEQUENCE IF NOT EXISTS IntoleranceSelection_seq START WITH 1 INCREMENT BY 50;
 
 CREATE SEQUENCE IF NOT EXISTS camp_stats_seq START WITH 1 INCREMENT BY 50;
@@ -139,7 +141,6 @@ CREATE TABLE health_stats
 CREATE TABLE users
 (
     email        VARCHAR(255)                NOT NULL,
-    oidc_subject VARCHAR(100),
     username     VARCHAR(100),
     first_name   VARCHAR(100),
     phonenumber  VARCHAR(100),
@@ -185,9 +186,6 @@ ALTER TABLE health_stats
 
 ALTER TABLE household
     ADD CONSTRAINT uc_household_primary_contact UNIQUE (primary_contact_id);
-
-ALTER TABLE users
-    ADD CONSTRAINT uc_users_oidc_subject UNIQUE (oidc_subject);
 
 ALTER TABLE camp_stats
     ADD CONSTRAINT FK_CAMP_STATS_ON_PARTICIPANT FOREIGN KEY (participant_id) REFERENCES participants (id);
@@ -279,7 +277,7 @@ VALUES (nextval('global_definitions_seq'), 'gluten', 'Glutenunverträglichkeit /
        (nextval('global_definitions_seq'), 'parfum', 'Duftstoffallergie', 1),
        (nextval('global_definitions_seq'), 'nickel', 'Nickelallergie', 1);
 
-CREATE OR REPLACE VIEW participant_full_data AS
+CREATE OR REPLACE VIEW reporting.participant_full_data AS
 SELECT p.id                            AS participant_id,
        p.firstname                     AS participant_firstname,
        p.lastname                      AS participant_lastname,
@@ -338,7 +336,7 @@ FROM IntoleranceSelection i
          JOIN participants p ON p.id = i.participant_id
          Left JOIN global_definitions glo ON glo.id = i.intolerance_id;
 
-CREATE OR REPLACE VIEW EMERGENCY_DATA AS
+CREATE OR REPLACE VIEW reporting.EMERGENCY_DATA AS
 SELECT cp.id                                               AS camp_participant_id,
        c.id                                                AS camp_id,
        s.id                                                AS signup_id,

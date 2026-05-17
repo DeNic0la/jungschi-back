@@ -3,12 +3,12 @@ package ch.denic0la.controller;
 import ch.denic0la.model.AppUser;
 import ch.denic0la.model.Camp;
 import ch.denic0la.model.CampParticipant;
-import ch.denic0la.model.CampStats;
 import ch.denic0la.model.Gender;
 import ch.denic0la.model.HealthStats;
 import ch.denic0la.model.Household;
 import ch.denic0la.model.IntoleranceSelection;
 import ch.denic0la.model.Participant;
+import ch.denic0la.model.ParticipantGeneralData;
 import ch.denic0la.model.Room;
 import ch.denic0la.model.SignUp;
 import io.quarkus.test.junit.QuarkusTest;
@@ -44,7 +44,7 @@ public class ParticipantHouseholdAccessControllerTest {
         CampParticipant.deleteAll();
         SignUp.deleteAll();
         IntoleranceSelection.deleteAll();
-        CampStats.deleteAll();
+        ParticipantGeneralData.deleteAll();
         HealthStats.deleteAll();
         Participant.deleteAll();
         Room.deleteAll();
@@ -115,7 +115,6 @@ public class ParticipantHouseholdAccessControllerTest {
 
     private AppUser user(String sub, String email, String firstName, String lastName, String roles) {
         AppUser user = new AppUser();
-        user.oidcSubject = sub;
         user.username = sub;
         user.email = email;
         user.firstName = firstName;

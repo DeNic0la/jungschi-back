@@ -16,14 +16,12 @@ import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.jboss.logging.Logger;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeSet;
-import java.util.UUID;
 
 @ApplicationScoped
 public class CurrentUserProvisioningService {
@@ -55,7 +53,6 @@ public class CurrentUserProvisioningService {
     @Transactional
     public AppUser ensureCurrentUser() {
         String email = currentEmail();
-        String oidcSubject = currentOidcSubject(email);
 
         AppUser user = AppUser.findById(email);
         boolean isNew = false;
@@ -63,16 +60,12 @@ public class CurrentUserProvisioningService {
         if (user == null) {
             user = new AppUser();
             user.email = email;
-            user.oidcSubject = oidcSubject;
             user.createdAt = Instant.now();
             loadOpenIdConnectData(user);
-            LOG.debugf("Provisioned new user from OpenID Connect data: email=%s oidcSubject=%s openIdConnectData=%s",
+            LOG.debugf("Provisioned new user from OpenID Connect data: email=%s openIdConnectData=%s",
                     user.email,
-                    user.oidcSubject,
                     user.openidConnectData);
             isNew = true;
-        } else if (user.oidcSubject == null || user.oidcSubject.isBlank()) {
-            user.oidcSubject = oidcSubject;
         }
         user.roles = identity.getRoles().isEmpty()
                 ? null
@@ -205,34 +198,6 @@ public class CurrentUserProvisioningService {
             throw new IllegalStateException("Missing OIDC email claim; email is required as the application user id");
         }
         return email.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private String currentOidcSubject(String email) {
-        String subject = firstNonBlank(jwt.getSubject(), tokenString("sub"), userInfoString("sub"));
-        if (subject != null) {
-            return subject;
-        }
-
-        String fallbackUserKey = firstNonBlank(
-                tokenString("preferred_username"),
-                userInfoString("preferred_username"),
-                email,
-                principalName()
-        );
-
-        String issuer = firstNonBlank(jwt.getIssuer(), tokenString("iss"), "unknown-issuer");
-        String fallbackSubject = fallbackSubject(issuer, fallbackUserKey);
-        LOG.warn("OIDC token is missing the subject claim; using issuer/user fallback identity key");
-        return fallbackSubject;
-    }
-
-    private String fallbackSubject(String issuer, String fallbackUserKey) {
-        String subject = issuer + "|" + fallbackUserKey;
-        if (subject.length() <= 100) {
-            return subject;
-        }
-        UUID stableId = UUID.nameUUIDFromBytes(subject.getBytes(StandardCharsets.UTF_8));
-        return "missing-sub|" + stableId;
     }
 
     private String principalName() {

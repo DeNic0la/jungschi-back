@@ -141,7 +141,6 @@ public class CampAndRoomControllerTest {
 
     private AppUser user(String sub, String email, String firstName, String lastName, String roles) {
         AppUser user = new AppUser();
-        user.oidcSubject = sub;
         user.username = sub;
         user.email = email;
         user.firstName = firstName;

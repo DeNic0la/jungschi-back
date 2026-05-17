@@ -1,10 +1,15 @@
 package ch.denic0la.model;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 
-@Entity(name = "camp_stats")
-public class CampStats extends PanacheEntity {
+@Entity(name = "participant_general_data")
+@Table(name = "participant_general_data")
+public class ParticipantGeneralData extends PanacheEntity {
 
     @OneToOne
     @JoinColumn(name = "participant_id")
@@ -12,26 +17,28 @@ public class CampStats extends PanacheEntity {
 
     @Column(name = "isTickVaccinated")
     public boolean isTickVaccinated;
-    @Column(name = "drugConsent")
-    public boolean drugConsent;
+
     @Column(name = "ahv")
     public String ahv;
+
     @Column(name = "krankenkasse")
     public String krankenkasse;
+
     @Column(name = "krankenkassenNr")
     public String krankenkassenNr;
-    @Column(name = "medication")
-    public String medication;
+
     @Column(name = "familyDoctor")
     public String familyDoctor;
+
     @Column(name = "nationality")
     public String nationality;
+
     @Column(name = "native_language")
     public String nativeLanguage;
+
     @Column(name = "food_preferences")
     public String foodPreferences;
 
     @Column(name = "notes")
     public String notes;
-
 }

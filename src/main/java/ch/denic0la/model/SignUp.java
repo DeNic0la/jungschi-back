@@ -21,7 +21,8 @@ public class SignUp extends PanacheEntity {
     public enum State {
         IN_PROGRESS,
         REVIEWED,
-        COMPLETED
+        COMPLETED,
+        DONE
     }
 
     @ManyToOne

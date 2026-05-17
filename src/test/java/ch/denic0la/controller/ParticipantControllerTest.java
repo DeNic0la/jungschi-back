@@ -124,7 +124,7 @@ public class ParticipantControllerTest {
         // Create camp stats for this participant
         given()
                 .contentType("application/json")
-                .body("{\"isTickVaccinated\": true, \"drugConsent\": true, \"ahv\": \"123\", \"krankenkasse\": \"AOK\", \"notes\": \"\"}")
+                .body("{\"isTickVaccinated\": true, \"ahv\": \"123\", \"krankenkasse\": \"AOK\", \"notes\": \"\"}")
                 .when().put("/api/participants/" + id + "/camp-stats")
                 .then()
                 .statusCode(200);

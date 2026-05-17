@@ -27,7 +27,7 @@ public class UserController {
     @Transactional
     public MeDto me() {
         AppUser user = provisioningService.ensureCurrentUser();
-        return new MeDto(user.email, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName, user.address);
+        return new MeDto(user.email, user.username, user.email, user.phoneNumber, user.firstName, user.lastName, user.address);
     }
 
     @PUT
@@ -48,7 +48,7 @@ public class UserController {
             user.address = update.address();
         }
         user.persist();
-        return new MeDto(user.email, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName, user.address);
+        return new MeDto(user.email, user.username, user.email, user.phoneNumber, user.firstName, user.lastName, user.address);
     }
 
     @GET
@@ -96,7 +96,7 @@ public class UserController {
         return fallback != null ? fallback : "";
     }
 
-    public record MeDto(String id, String oidcSubject, String username, String email, String phoneNumber, String firstName, String lastName, String address) {}
+    public record MeDto(String id, String username, String email, String phoneNumber, String firstName, String lastName, String address) {}
 
     public record UpdateUserDto(String phoneNumber, String firstName, String lastName, String address) {}
 

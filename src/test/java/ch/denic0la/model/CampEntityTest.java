@@ -43,7 +43,6 @@ public class CampEntityTest {
     @Transactional
     public void testRoomPersistence() {
         AppUser leader = new AppUser();
-        leader.oidcSubject = "room-leader-1";
         leader.username = "leader1";
         leader.email = "leader1@example.com";
         leader.createdAt = Instant.now();
@@ -70,6 +69,6 @@ public class CampEntityTest {
         assertEquals(Gender.MALE, persisted.gender);
         assertEquals("pfila-2026", persisted.camp.id);
         assertEquals(1, persisted.leaders.size());
-        assertEquals("room-leader-1", persisted.leaders.get(0).oidcSubject);
+        assertEquals("leader1@example.com", persisted.leaders.get(0).email);
     }
 }

@@ -21,9 +21,6 @@ public class AppUser extends PanacheEntityBase {
     @Column(name = "email", nullable = false, updatable = false)
     public String email;
 
-    @Column(name = "oidc_subject")
-    public String oidcSubject;
-
     @Column(name = "username")
     public String username;
 

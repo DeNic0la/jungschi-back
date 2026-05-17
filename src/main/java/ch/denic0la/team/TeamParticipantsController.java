@@ -51,19 +51,17 @@ public class TeamParticipantsController {
                 p.household.primaryContact.address)
                 : null;
         HealthStatsDto healthStatsDto = p.healthStats != null ? new HealthStatsDto(p.healthStats.isHealthy, p.healthStats.healthyReason, p.healthStats.excludedActivities) : null;
-        CampStatsDto campStatsDto = p.campStats != null
-                ? new CampStatsDto(
-                p.campStats.isTickVaccinated,
-                p.campStats.drugConsent,
-                p.campStats.ahv,
-                p.campStats.krankenkasse,
-                p.campStats.krankenkassenNr,
-                p.campStats.medication,
-                p.campStats.familyDoctor,
-                p.campStats.nationality,
-                p.campStats.nativeLanguage,
-                p.campStats.foodPreferences,
-                p.campStats.notes)
+        ParticipantGeneralDataDto campStatsDto = p.participantGeneralData != null
+                ? new ParticipantGeneralDataDto(
+                p.participantGeneralData.isTickVaccinated,
+                p.participantGeneralData.ahv,
+                p.participantGeneralData.krankenkasse,
+                p.participantGeneralData.krankenkassenNr,
+                p.participantGeneralData.familyDoctor,
+                p.participantGeneralData.nationality,
+                p.participantGeneralData.nativeLanguage,
+                p.participantGeneralData.foodPreferences,
+                p.participantGeneralData.notes)
                 : null;
         List<IntoleranceSelectionDto> intoleranceSelectionDtos = p.intoleranceSelections.stream()
                 .map(i -> {
@@ -93,7 +91,7 @@ public class TeamParticipantsController {
             LocalDateTime lastUpdatedAt,
             AppUserDto user,
             HealthStatsDto healthStats,
-            CampStatsDto campStats,
+            ParticipantGeneralDataDto campStats,
             List<IntoleranceSelectionDto> intoleranceSelections
     ) {}
 
@@ -101,13 +99,11 @@ public class TeamParticipantsController {
 
     public record HealthStatsDto(boolean isHealthy, String healthyReason, String excludedActivities) {}
 
-    public record CampStatsDto(
+    public record ParticipantGeneralDataDto(
             boolean isTickVaccinated,
-            boolean drugConsent,
             String ahv,
             String krankenkasse,
             String krankenkassenNr,
-            String medication,
             String familyDoctor,
             String nationality,
             String nativeLanguage,

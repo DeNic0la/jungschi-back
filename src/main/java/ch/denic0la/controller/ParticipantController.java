@@ -2,11 +2,11 @@ package ch.denic0la.controller;
 
 import ch.denic0la.CurrentUserProvisioningService;
 import ch.denic0la.model.AppUser;
-import ch.denic0la.model.CampStats;
 import ch.denic0la.model.Gender;
 import ch.denic0la.model.HealthStats;
 import ch.denic0la.model.Household;
 import ch.denic0la.model.Participant;
+import ch.denic0la.model.ParticipantGeneralData;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -70,7 +70,7 @@ public class ParticipantController {
             throw new NotFoundException("Participant not found");
         }
         boolean hasHealthStats = HealthStats.count("participant", p) > 0;
-        boolean hasCampStats = CampStats.count("participant", p) > 0;
+        boolean hasCampStats = ParticipantGeneralData.count("participant", p) > 0;
         return toInfoDto(p, hasHealthStats, hasCampStats);
     }
 

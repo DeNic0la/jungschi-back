@@ -23,7 +23,6 @@ public class SignUpEntityTest {
     @Transactional
     public void testSignUpLifecyclePersistence() {
         AppUser primaryContact = new AppUser();
-        primaryContact.oidcSubject = "signup-household-user";
         primaryContact.username = "signupuser";
         primaryContact.email = "signup@example.com";
         primaryContact.createdAt = Instant.now();
@@ -143,7 +142,7 @@ public class SignUpEntityTest {
                        health,
                        primary_contact_email,
                        household_street_and_number
-                FROM EMERGENCY_DATA
+                FROM reporting.EMERGENCY_DATA
                 WHERE camp_participant_id = ?1
                 """)
                 .setParameter(1, campParticipant.id)

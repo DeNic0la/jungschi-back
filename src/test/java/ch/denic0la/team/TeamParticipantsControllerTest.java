@@ -44,7 +44,6 @@ public class TeamParticipantsControllerTest {
                 .body("user.address", anyOf(nullValue(), notNullValue()))
                 .body("campStats", anyOf(nullValue(), notNullValue()))
                 .body("campStats.krankenkassenNr", anyOf(nullValue(), notNullValue()))
-                .body("campStats.medication", anyOf(nullValue(), notNullValue()))
                 .body("campStats.nationality", anyOf(nullValue(), notNullValue()))
                 .body("campStats.nativeLanguage", anyOf(nullValue(), notNullValue()))
                 .body("campStats.foodPreferences", anyOf(nullValue(), notNullValue()))
