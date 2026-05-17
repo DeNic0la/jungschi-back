@@ -10,6 +10,7 @@ import ch.denic0la.model.Participant;
 import ch.denic0la.model.SignUp;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
@@ -40,15 +41,31 @@ public class SignUpController {
     @GET
     @Path("/camp/{campId}")
     @Transactional
+    @RolesAllowed("guardian")
     public SignUpDto getForCamp(@PathParam("campId") String campId) {
         Household household = householdForCurrentUser();
         Camp camp = findCamp(campId);
         SignUp signUp = SignUp.find("household = ?1 and camp = ?2", household, camp).firstResult();
-        return signUp == null ? null : toDto(signUp);
+        return signUp == null ? null : toGuardianDto(signUp);
+    }
+
+    @GET
+    @Path("/camp/{campId}/review")
+    @Transactional
+    @RolesAllowed({"Jungschiteam", "ADMIN"})
+    public List<TeamSignUpDto> listForReview(@PathParam("campId") String campId) {
+        Camp camp = findCamp(campId);
+        return SignUp.<SignUp>list("camp", camp).stream()
+                .sorted(Comparator
+                        .comparing((SignUp signUp) -> signUp.state)
+                        .thenComparing(signUp -> signUp.household != null ? signUp.household.id : 0))
+                .map(this::toTeamDto)
+                .toList();
     }
 
     @POST
     @Transactional
+    @RolesAllowed("guardian")
     public SignUpDto save(SignUpInput dto) {
         if (dto == null || dto.campId() == null || dto.campId().isBlank()) {
             throw new BadRequestException("campId is required");
@@ -70,8 +87,8 @@ public class SignUpController {
             signUp.camp = camp;
             signUp.state = SignUp.State.IN_PROGRESS;
             signUp.persist();
-        } else if (signUp.state == SignUp.State.COMPLETED) {
-            signUp.state = SignUp.State.IN_PROGRESS;
+        } else if (signUp.state != SignUp.State.IN_PROGRESS) {
+            throw new BadRequestException("Signup must be reopened before it can be edited");
         }
 
         signUp.photoConsent = dto.photoConsent();
@@ -80,34 +97,115 @@ public class SignUpController {
 
         replaceCampParticipants(signUp, camp, household, dto.campParticipants());
 
-        return toDto(signUp);
+        return toGuardianDto(signUp);
     }
 
     @PUT
     @Path("/{id}/complete")
     @Transactional
+    @RolesAllowed("guardian")
     public SignUpDto complete(@PathParam("id") Long id) {
         Household household = householdForCurrentUser();
         SignUp signUp = SignUp.findById(id);
         if (signUp == null || signUp.household == null || !Objects.equals(signUp.household.id, household.id)) {
             throw new NotFoundException("Signup not found");
         }
+        if (signUp.state != SignUp.State.IN_PROGRESS) {
+            throw new BadRequestException("Only in-progress signups can be completed");
+        }
         if (signUp.campParticipants == null || signUp.campParticipants.isEmpty()) {
             throw new BadRequestException("At least one camp participant is required");
         }
         signUp.complete();
-        return toDto(signUp);
+        return toGuardianDto(signUp);
+    }
+
+    @PUT
+    @Path("/{id}/reopen")
+    @Transactional
+    @RolesAllowed("guardian")
+    public SignUpDto reopen(@PathParam("id") Long id) {
+        Household household = householdForCurrentUser();
+        SignUp signUp = SignUp.findById(id);
+        if (signUp == null || signUp.household == null || !Objects.equals(signUp.household.id, household.id)) {
+            throw new NotFoundException("Signup not found");
+        }
+        if (signUp.state == SignUp.State.IN_PROGRESS) {
+            return toGuardianDto(signUp);
+        }
+        if (signUp.state == SignUp.State.APPROVED) {
+            signUp.feedback = null;
+        }
+        signUp.reopen();
+        return toGuardianDto(signUp);
+    }
+
+    @PUT
+    @Path("/{id}/feedback")
+    @Transactional
+    @RolesAllowed({"Jungschiteam", "ADMIN"})
+    public TeamSignUpDto updateFeedback(@PathParam("id") Long id, FeedbackInput input) {
+        SignUp signUp = findSignUp(id);
+        signUp.feedback = blankToNull(input == null ? null : input.feedback());
+        return toTeamDto(signUp);
+    }
+
+    @PUT
+    @Path("/{id}/reject")
+    @Transactional
+    @RolesAllowed({"Jungschiteam", "ADMIN"})
+    public TeamSignUpDto reject(@PathParam("id") Long id, FeedbackInput input) {
+        SignUp signUp = findSignUp(id);
+        String feedback = blankToNull(input == null ? null : input.feedback());
+        if (feedback == null) {
+            throw new BadRequestException("Feedback is required");
+        }
+        signUp.feedback = feedback;
+        signUp.reopen();
+        return toTeamDto(signUp);
+    }
+
+    @PUT
+    @Path("/{id}/approve")
+    @Transactional
+    @RolesAllowed({"Jungschiteam", "ADMIN"})
+    public TeamSignUpDto approve(@PathParam("id") Long id) {
+        SignUp signUp = findSignUp(id);
+        if (signUp.state != SignUp.State.COMPLETED) {
+            throw new BadRequestException("Only completed signups can be approved");
+        }
+        signUp.approve();
+        return toTeamDto(signUp);
+    }
+
+    @PUT
+    @Path("/camp-participants/{campParticipantId}/room")
+    @Transactional
+    @RolesAllowed({"Jungschiteam", "ADMIN"})
+    public TeamSignUpDto assignRoom(
+            @PathParam("campParticipantId") Long campParticipantId,
+            AssignRoomInput input) {
+        CampParticipant campParticipant = CampParticipant.findById(campParticipantId);
+        if (campParticipant == null || campParticipant.signUp == null) {
+            throw new NotFoundException("Camp participant not found");
+        }
+        if (input == null || input.roomId() == null) {
+            campParticipant.room = null;
+        } else {
+            ch.denic0la.model.Room room = ch.denic0la.model.Room.findById(input.roomId());
+            if (room == null
+                    || room.camp == null
+                    || campParticipant.camp == null
+                    || !Objects.equals(room.camp.id, campParticipant.camp.id)) {
+                throw new BadRequestException("Room must belong to the same camp");
+            }
+            campParticipant.room = room;
+        }
+        return toTeamDto(campParticipant.signUp);
     }
 
     private Household householdForCurrentUser() {
-        AppUser user = provisioningService.ensureCurrentUser();
-        Household household = provisioningService.findHouseholdForContact(user);
-        if (household == null) {
-            household = new Household();
-            household.primaryContact = user;
-            household.persist();
-        }
-        return household;
+        return provisioningService.ensureCurrentUserHousehold();
     }
 
     private Camp findCamp(String campId) {
@@ -116,6 +214,14 @@ public class SignUpController {
             throw new NotFoundException("Camp not found");
         }
         return camp;
+    }
+
+    private SignUp findSignUp(Long id) {
+        SignUp signUp = SignUp.findById(id);
+        if (signUp == null) {
+            throw new NotFoundException("Signup not found");
+        }
+        return signUp;
     }
 
     private void replaceCampParticipants(
@@ -170,23 +276,23 @@ public class SignUpController {
         }
     }
 
-    private SignUpDto toDto(SignUp signUp) {
+    private SignUpDto toGuardianDto(SignUp signUp) {
         List<CampParticipantDto> campParticipants = new ArrayList<>(signUp.campParticipants).stream()
                 .sorted(Comparator.comparing(campParticipant -> campParticipant.id))
-                .map(this::toDto)
+                .map(this::toGuardianDto)
                 .toList();
         return new SignUpDto(
                 signUp.id,
                 signUp.camp != null ? signUp.camp.id : null,
                 signUp.state,
-                signUp.feedback,
+                signUp.state == SignUp.State.IN_PROGRESS ? signUp.feedback : null,
                 signUp.photoConsent,
                 signUp.infoEmail,
                 signUp.additionalContactOptionsDuringCamp,
                 campParticipants);
     }
 
-    private CampParticipantDto toDto(CampParticipant campParticipant) {
+    private CampParticipantDto toGuardianDto(CampParticipant campParticipant) {
         List<MedicationDto> medications = new ArrayList<>(campParticipant.medications).stream()
                 .sorted(Comparator.comparing(medication -> medication.id))
                 .map(medication -> new MedicationDto(
@@ -203,6 +309,51 @@ public class SignUpController {
                 campParticipant.infosZimmerleitung,
                 campParticipant.bemerkungen,
                 campParticipant.drugConsent,
+                medications);
+    }
+
+    private TeamSignUpDto toTeamDto(SignUp signUp) {
+        List<TeamCampParticipantDto> campParticipants = new ArrayList<>(signUp.campParticipants).stream()
+                .sorted(Comparator.comparing(campParticipant -> campParticipant.id))
+                .map(this::toTeamDto)
+                .toList();
+        return new TeamSignUpDto(
+                signUp.id,
+                signUp.camp != null ? signUp.camp.id : null,
+                signUp.household != null ? signUp.household.id : null,
+                signUp.state,
+                signUp.feedback,
+                signUp.photoConsent,
+                signUp.infoEmail,
+                signUp.additionalContactOptionsDuringCamp,
+                campParticipants);
+    }
+
+    private TeamCampParticipantDto toTeamDto(CampParticipant campParticipant) {
+        Participant participant = campParticipant.participant;
+        ch.denic0la.model.Room room = campParticipant.room;
+        List<MedicationDto> medications = new ArrayList<>(campParticipant.medications).stream()
+                .sorted(Comparator.comparing(medication -> medication.id))
+                .map(medication -> new MedicationDto(
+                        medication.medicationName,
+                        medication.dose,
+                        medication.frequency,
+                        medication.purpose,
+                        medication.needsHelp,
+                        medication.confidential))
+                .toList();
+        return new TeamCampParticipantDto(
+                campParticipant.id,
+                participant != null ? participant.id : null,
+                participant != null ? participant.firstname : null,
+                participant != null ? participant.lastname : null,
+                participant != null ? participant.gender : null,
+                campParticipant.schoolClass,
+                campParticipant.infosZimmerleitung,
+                campParticipant.bemerkungen,
+                campParticipant.drugConsent,
+                room != null ? room.id : null,
+                room != null ? room.name : null,
                 medications);
     }
 
@@ -233,6 +384,10 @@ public class SignUpController {
             boolean needsHelp,
             boolean confidential) {}
 
+    public record FeedbackInput(String feedback) {}
+
+    public record AssignRoomInput(Long roomId) {}
+
     public record SignUpDto(
             Long id,
             String campId,
@@ -258,4 +413,29 @@ public class SignUpController {
             String purpose,
             boolean needsHelp,
             boolean confidential) {}
+
+    public record TeamSignUpDto(
+            Long id,
+            String campId,
+            Long householdId,
+            SignUp.State state,
+            String feedback,
+            boolean photoConsent,
+            boolean infoEmail,
+            String additionalContactOptionsDuringCamp,
+            List<TeamCampParticipantDto> campParticipants) {}
+
+    public record TeamCampParticipantDto(
+            Long id,
+            Long participantId,
+            String firstname,
+            String lastname,
+            ch.denic0la.model.Gender gender,
+            String schoolClass,
+            String infosZimmerleitung,
+            String bemerkungen,
+            boolean drugConsent,
+            Long roomId,
+            String roomName,
+            List<MedicationDto> medications) {}
 }

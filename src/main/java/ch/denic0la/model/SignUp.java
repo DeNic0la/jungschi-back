@@ -20,9 +20,8 @@ public class SignUp extends PanacheEntity {
 
     public enum State {
         IN_PROGRESS,
-        REVIEWED,
         COMPLETED,
-        DONE
+        APPROVED
     }
 
     @ManyToOne
@@ -59,11 +58,15 @@ public class SignUp extends PanacheEntity {
         }
     }
 
-    public void finish() {
-        state = State.REVIEWED;
-    }
-
     public void complete() {
         state = State.COMPLETED;
+    }
+
+    public void approve() {
+        state = State.APPROVED;
+    }
+
+    public void reopen() {
+        state = State.IN_PROGRESS;
     }
 }

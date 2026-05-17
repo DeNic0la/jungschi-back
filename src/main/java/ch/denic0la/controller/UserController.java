@@ -3,6 +3,7 @@ package ch.denic0la.controller;
 import ch.denic0la.CurrentUserProvisioningService;
 import ch.denic0la.model.AppUser;
 import io.quarkus.security.Authenticated;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
@@ -28,6 +29,27 @@ public class UserController {
     public MeDto me() {
         AppUser user = provisioningService.ensureCurrentUser();
         return new MeDto(user.email, user.username, user.email, user.phoneNumber, user.firstName, user.lastName, user.address);
+    }
+
+    @GET
+    @Path("/team")
+    @NoCache
+    @Transactional
+    @RolesAllowed("ADMIN")
+    public List<TeamUserDto> teamUsers() {
+        return AppUser.<AppUser>listAll().stream()
+                .filter(candidate -> candidate.hasRole("Jungschiteam"))
+                .sorted(Comparator
+                        .comparing((AppUser user) -> firstNonBlank(user.firstName, user.username))
+                        .thenComparing(user -> firstNonBlank(user.lastName, user.email)))
+                .map(candidate -> new TeamUserDto(
+                        candidate.email,
+                        candidate.username,
+                        candidate.email,
+                        candidate.firstName,
+                        candidate.lastName,
+                        candidate.pictureUrl))
+                .toList();
     }
 
     @PUT
@@ -110,4 +132,12 @@ public class UserController {
             Long householdId,
             boolean primaryContact,
             boolean secondaryContact) {}
+
+    public record TeamUserDto(
+            String id,
+            String username,
+            String email,
+            String firstName,
+            String lastName,
+            String pictureUrl) {}
 }

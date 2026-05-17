@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -18,6 +19,24 @@ public class SignUpEntityTest {
 
     @Inject
     EntityManager entityManager;
+
+    @BeforeEach
+    @Transactional
+    public void setup() {
+        entityManager.createNativeQuery("DELETE FROM room_leader_assignment").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM camp_participant_medication").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM household_guardian").executeUpdate();
+        CampParticipant.deleteAll();
+        SignUp.deleteAll();
+        IntoleranceSelection.deleteAll();
+        GlobalIntoleranceDefinitions.deleteAll();
+        HealthStats.deleteAll();
+        Participant.deleteAll();
+        Room.deleteAll();
+        Camp.deleteAll();
+        Household.deleteAll();
+        AppUser.deleteAll();
+    }
 
     @Test
     @Transactional
@@ -127,11 +146,11 @@ public class SignUpEntityTest {
         assertEquals(true, persistedMedication.confidential);
 
         persistedCampParticipant.room = room;
-        persistedSignUp.finish();
         persistedSignUp.feedback = "Bitte vegetarisches Essen einplanen.";
         persistedSignUp.complete();
+        persistedSignUp.approve();
 
-        assertEquals(SignUp.State.COMPLETED, persistedSignUp.state);
+        assertEquals(SignUp.State.APPROVED, persistedSignUp.state);
         assertEquals(room.id, persistedCampParticipant.room.id);
         assertEquals("Bitte vegetarisches Essen einplanen.", persistedSignUp.feedback);
 
