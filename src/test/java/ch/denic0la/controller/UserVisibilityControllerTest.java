@@ -38,6 +38,7 @@ public class UserVisibilityControllerTest {
     public void setup() {
         entityManager.createNativeQuery("DELETE FROM room_leader_assignment").executeUpdate();
         entityManager.createNativeQuery("DELETE FROM camp_participant_medication").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM household_guardian").executeUpdate();
         CampParticipant.deleteAll();
         SignUp.deleteAll();
         IntoleranceSelection.deleteAll();
@@ -72,15 +73,15 @@ public class UserVisibilityControllerTest {
             @Claim(key = "preferred_username", value = "guardian-current"),
             @Claim(key = "email", value = "current@example.com")
     })
-    public void guardianSeesOnlyUnassignedOrSameHouseholdGuardians() {
+    public void guardianSeesOnlySameHouseholdGuardians() {
         given()
                 .when().get("/api/users/guardians")
                 .then()
                 .statusCode(200)
-                .body("size()", is(2))
-                .body("id", hasSize(2))
-                .body("id", org.hamcrest.Matchers.hasItems("same@example.com", "free@example.com"))
-                .body("id", not(org.hamcrest.Matchers.hasItems("other@example.com", "plain@example.com")));
+                .body("size()", is(1))
+                .body("id", hasSize(1))
+                .body("id", org.hamcrest.Matchers.hasItems("same@example.com"))
+                .body("id", not(org.hamcrest.Matchers.hasItems("other@example.com", "free@example.com", "plain@example.com")));
     }
 
     @Test

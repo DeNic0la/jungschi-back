@@ -40,6 +40,9 @@ public class CampParticipant extends PanacheEntity {
     @Column(name = "bemerkungen")
     public String bemerkungen;
 
+    @Column(name = "drug_consent")
+    public boolean drugConsent;
+
     @OneToMany(mappedBy = "campParticipant")
     public List<CampParticipantMedication> medications = new ArrayList<>();
 }

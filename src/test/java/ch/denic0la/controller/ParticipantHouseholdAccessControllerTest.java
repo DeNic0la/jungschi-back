@@ -41,6 +41,7 @@ public class ParticipantHouseholdAccessControllerTest {
     public void setup() {
         entityManager.createNativeQuery("DELETE FROM room_leader_assignment").executeUpdate();
         entityManager.createNativeQuery("DELETE FROM camp_participant_medication").executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM household_guardian").executeUpdate();
         CampParticipant.deleteAll();
         SignUp.deleteAll();
         IntoleranceSelection.deleteAll();

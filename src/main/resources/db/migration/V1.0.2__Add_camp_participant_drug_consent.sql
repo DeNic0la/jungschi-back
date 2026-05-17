@@ -1,0 +1,2 @@
+ALTER TABLE camp_participant
+    ADD COLUMN IF NOT EXISTS drug_consent BOOLEAN DEFAULT FALSE;

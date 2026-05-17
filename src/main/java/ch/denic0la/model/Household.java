@@ -38,4 +38,7 @@ public class Household extends PanacheEntity {
 
     @OneToMany(mappedBy = "household")
     public List<SignUp> signUps = new ArrayList<>();
+
+    @OneToMany(mappedBy = "household")
+    public List<HouseholdGuardian> guardians = new ArrayList<>();
 }

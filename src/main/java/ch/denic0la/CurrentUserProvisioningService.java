@@ -3,6 +3,7 @@ package ch.denic0la;
 import ch.denic0la.model.AppUser;
 import ch.denic0la.model.CampParticipant;
 import ch.denic0la.model.Household;
+import ch.denic0la.model.HouseholdGuardian;
 import ch.denic0la.model.Participant;
 import ch.denic0la.model.Room;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeSet;
 
 @ApplicationScoped
@@ -75,6 +77,7 @@ public class CurrentUserProvisioningService {
         if (isNew) {
             user.persist();
         }
+        claimPendingGuardianMembership(user);
 
         return user;
     }
@@ -87,6 +90,7 @@ public class CurrentUserProvisioningService {
             household = new Household();
             household.primaryContact = user;
             household.persist();
+            ensureGuardianMembership(household, user, HouseholdGuardian.ContactType.PRIMARY);
         }
         return household;
     }
@@ -94,6 +98,13 @@ public class CurrentUserProvisioningService {
     public Household findHouseholdForContact(AppUser user) {
         if (user == null) {
             return null;
+        }
+        HouseholdGuardian membership = HouseholdGuardian.find("user = ?1", user).firstResult();
+        if (membership == null && user.email != null) {
+            membership = HouseholdGuardian.find("email", normalizeEmail(user.email)).firstResult();
+        }
+        if (membership != null) {
+            return membership.household;
         }
         Household primary = Household.find("primaryContact", user).firstResult();
         if (primary != null) {
@@ -103,9 +114,11 @@ public class CurrentUserProvisioningService {
     }
 
     public boolean isHouseholdContact(Household household, AppUser user) {
+        Household userHousehold = findHouseholdForContact(user);
         return household != null
                 && user != null
-                && ((household.primaryContact != null && household.primaryContact.email.equals(user.email))
+                && ((userHousehold != null && Objects.equals(userHousehold.id, household.id))
+                || (household.primaryContact != null && household.primaryContact.email.equals(user.email))
                 || (household.secondaryContact != null && household.secondaryContact.email.equals(user.email)));
     }
 
@@ -121,7 +134,7 @@ public class CurrentUserProvisioningService {
         if (currentUser == null || candidate == null || !candidate.hasRole("guardian")) {
             return false;
         }
-        if (canViewAnything()) {
+        if (isAdmin()) {
             return true;
         }
         if (!identity.hasRole("guardian")) {
@@ -130,8 +143,9 @@ public class CurrentUserProvisioningService {
 
         Household currentHousehold = findHouseholdForContact(currentUser);
         Household candidateHousehold = findHouseholdForContact(candidate);
-        return candidateHousehold == null
-                || (currentHousehold != null && currentHousehold.id.equals(candidateHousehold.id));
+        return currentHousehold != null
+                && candidateHousehold != null
+                && currentHousehold.id.equals(candidateHousehold.id);
     }
 
     public boolean canViewRoom(Room room, AppUser user) {
@@ -154,6 +168,51 @@ public class CurrentUserProvisioningService {
 
     public boolean isAdmin() {
         return identity.hasRole("ADMIN");
+    }
+
+    @Transactional
+    public HouseholdGuardian ensureGuardianMembership(
+            Household household,
+            AppUser user,
+            HouseholdGuardian.ContactType contactType) {
+        if (household == null || user == null || user.email == null) {
+            return null;
+        }
+        String email = normalizeEmail(user.email);
+        HouseholdGuardian membership = HouseholdGuardian.find("email", email).firstResult();
+        if (membership == null) {
+            membership = new HouseholdGuardian();
+            membership.household = household;
+            membership.email = email;
+        }
+        membership.user = user;
+        membership.contactType = contactType != null ? contactType : HouseholdGuardian.ContactType.ADDITIONAL;
+        membership.persist();
+        return membership;
+    }
+
+    private void claimPendingGuardianMembership(AppUser user) {
+        if (user == null || user.email == null) {
+            return;
+        }
+        if (!identity.hasRole("guardian")) {
+            return;
+        }
+        String email = normalizeEmail(user.email);
+        HouseholdGuardian membership = HouseholdGuardian.find("email", email).firstResult();
+        if (membership != null && membership.user == null) {
+            membership.user = user;
+            if (membership.household.secondaryContact == null) {
+                membership.contactType = HouseholdGuardian.ContactType.SECONDARY;
+                membership.household.secondaryContact = user;
+            } else {
+                membership.contactType = HouseholdGuardian.ContactType.ADDITIONAL;
+            }
+        }
+    }
+
+    public String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
 
     private void loadOpenIdConnectData(AppUser user) {

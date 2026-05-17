@@ -57,6 +57,9 @@ public class AppUser extends PanacheEntityBase {
     @OneToMany(mappedBy = "secondaryContact")
     public List<Household> secondaryHouseholds = new ArrayList<>();
 
+    @OneToMany(mappedBy = "user")
+    public List<HouseholdGuardian> householdMemberships = new ArrayList<>();
+
     @ManyToMany(mappedBy = "leaders")
     public List<Room> leadRooms = new ArrayList<>();
 
