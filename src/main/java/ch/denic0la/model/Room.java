@@ -37,7 +37,7 @@ public class Room extends PanacheEntity {
     @JoinTable(
             name = "room_leader_assignment",
             joinColumns = @JoinColumn(name = "room_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_oidc_subject")
+            inverseJoinColumns = @JoinColumn(name = "user_email")
     )
     public List<AppUser> leaders = new ArrayList<>();
 

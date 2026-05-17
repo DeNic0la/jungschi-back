@@ -44,7 +44,7 @@ public class RoomController {
                         .sorted(Comparator.comparing((AppUser leader) -> leader.firstName == null ? "" : leader.firstName)
                                 .thenComparing(leader -> leader.lastName == null ? "" : leader.lastName))
                         .map(leader -> new RoomLeaderDto(
-                                leader.oidcSubject,
+                                leader.email,
                                 leader.firstName,
                                 leader.lastName,
                                 leader.pictureUrl))

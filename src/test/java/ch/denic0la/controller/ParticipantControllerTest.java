@@ -16,7 +16,8 @@ public class ParticipantControllerTest {
     @TestSecurity(user = "test-user", roles = {"user"})
     @OidcSecurity(claims = {
             @Claim(key = "sub", value = "participant-test-sub"),
-            @Claim(key = "preferred_username", value = "testuser")
+            @Claim(key = "preferred_username", value = "testuser"),
+            @Claim(key = "email", value = "participant-test@example.com")
     })
     public void testParticipantCrud() {
         // Create
@@ -80,7 +81,8 @@ public class ParticipantControllerTest {
     @TestSecurity(user = "test-user", roles = {"user"})
     @OidcSecurity(claims = {
             @Claim(key = "sub", value = "participant-test-sub"),
-            @Claim(key = "preferred_username", value = "testuser")
+            @Claim(key = "preferred_username", value = "testuser"),
+            @Claim(key = "email", value = "participant-test@example.com")
     })
     public void testParticipantInfo() {
         // Create a participant
@@ -145,8 +147,9 @@ public class ParticipantControllerTest {
     @Test
     @TestSecurity(user = "other-user", roles = {"user"})
     @OidcSecurity(claims = {
-            @Claim(key = "sub", value = "user2"),
-            @Claim(key = "preferred_username", value = "user2")
+            @Claim(key = "sub", value = "user2-participant"),
+            @Claim(key = "preferred_username", value = "user2-participant"),
+            @Claim(key = "email", value = "user2@example.com")
     })
     public void testIsolation() {
         given()

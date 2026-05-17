@@ -27,7 +27,7 @@ public class UserController {
     @Transactional
     public MeDto me() {
         AppUser user = provisioningService.ensureCurrentUser();
-        return new MeDto(user.oidcSubject, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName, user.address);
+        return new MeDto(user.email, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName, user.address);
     }
 
     @PUT
@@ -48,7 +48,7 @@ public class UserController {
             user.address = update.address();
         }
         user.persist();
-        return new MeDto(user.oidcSubject, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName, user.address);
+        return new MeDto(user.email, user.oidcSubject, user.username, user.email, user.phoneNumber, user.firstName, user.lastName, user.address);
     }
 
     @GET
@@ -58,7 +58,7 @@ public class UserController {
     public List<GuardianUserDto> visibleGuardians() {
         AppUser currentUser = provisioningService.ensureCurrentUser();
         return AppUser.<AppUser>listAll().stream()
-                .filter(candidate -> !candidate.oidcSubject.equals(currentUser.oidcSubject))
+                .filter(candidate -> !candidate.email.equals(currentUser.email))
                 .filter(candidate -> provisioningService.canViewGuardian(currentUser, candidate))
                 .sorted(Comparator
                         .comparing((AppUser user) -> firstNonBlank(user.firstName, user.username))
@@ -71,12 +71,12 @@ public class UserController {
                     if (household != null) {
                         householdId = household.id;
                         primaryContact = household.primaryContact != null
-                                && household.primaryContact.oidcSubject.equals(candidate.oidcSubject);
+                                && household.primaryContact.email.equals(candidate.email);
                         secondaryContact = household.secondaryContact != null
-                                && household.secondaryContact.oidcSubject.equals(candidate.oidcSubject);
+                                && household.secondaryContact.email.equals(candidate.email);
                     }
                     return new GuardianUserDto(
-                            candidate.oidcSubject,
+                            candidate.email,
                             candidate.username,
                             candidate.email,
                             candidate.firstName,

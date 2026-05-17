@@ -79,8 +79,8 @@ public class UserVisibilityControllerTest {
                 .statusCode(200)
                 .body("size()", is(2))
                 .body("id", hasSize(2))
-                .body("id", org.hamcrest.Matchers.hasItems("guardian-same", "guardian-free"))
-                .body("id", not(org.hamcrest.Matchers.hasItems("guardian-other", "plain-user")));
+                .body("id", org.hamcrest.Matchers.hasItems("same@example.com", "free@example.com"))
+                .body("id", not(org.hamcrest.Matchers.hasItems("other@example.com", "plain@example.com")));
     }
 
     @Test
@@ -96,7 +96,7 @@ public class UserVisibilityControllerTest {
                 .then()
                 .statusCode(200)
                 .body("size()", is(4))
-                .body("id", org.hamcrest.Matchers.hasItems("guardian-current", "guardian-same", "guardian-other", "guardian-free"));
+                .body("id", org.hamcrest.Matchers.hasItems("current@example.com", "same@example.com", "other@example.com", "free@example.com"));
     }
 
     private AppUser user(String sub, String email, String firstName, String lastName, String roles) {

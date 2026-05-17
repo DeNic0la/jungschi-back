@@ -16,7 +16,8 @@ public class TeamParticipantsControllerTest {
     @TestSecurity(user = "team-user", roles = {"Jungschiteam"})
     @OidcSecurity(claims = {
             @Claim(key = "sub", value = "team-user-sub"),
-            @Claim(key = "preferred_username", value = "teamuser")
+            @Claim(key = "preferred_username", value = "teamuser"),
+            @Claim(key = "email", value = "teamuser@example.com")
     })
     public void testGetParticipantByIdDetailed() {
         // First create a participant as a normal user

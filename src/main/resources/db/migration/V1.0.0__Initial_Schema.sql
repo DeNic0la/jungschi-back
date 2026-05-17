@@ -112,9 +112,9 @@ CREATE TABLE camp_participant_medication
 
 CREATE TABLE room_leader_assignment
 (
-    room_id           BIGINT       NOT NULL,
-    user_oidc_subject VARCHAR(100) NOT NULL,
-    CONSTRAINT pk_room_leader_assignment PRIMARY KEY (room_id, user_oidc_subject)
+    room_id    BIGINT       NOT NULL,
+    user_email VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_room_leader_assignment PRIMARY KEY (room_id, user_email)
 );
 
 CREATE TABLE global_definitions
@@ -138,25 +138,26 @@ CREATE TABLE health_stats
 
 CREATE TABLE users
 (
-    oidc_subject VARCHAR(100)                NOT NULL,
+    email        VARCHAR(255)                NOT NULL,
+    oidc_subject VARCHAR(100),
     username     VARCHAR(100),
-    email        VARCHAR(255),
     first_name   VARCHAR(100),
     phonenumber  VARCHAR(100),
     last_name    VARCHAR(100),
     address      TEXT,
     picture_url  TEXT,
     roles        TEXT,
+    openid_connect_data TEXT,
     created_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     last_seen_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    CONSTRAINT pk_users PRIMARY KEY (oidc_subject)
+    CONSTRAINT pk_users PRIMARY KEY (email)
 );
 
 CREATE TABLE household
 (
     id                      BIGINT NOT NULL,
-    primary_contact_id      VARCHAR(100) NOT NULL,
-    secondary_contact_id    VARCHAR(100),
+    primary_contact_id      VARCHAR(255) NOT NULL,
+    secondary_contact_id    VARCHAR(255),
     secondary_contact_email VARCHAR(255),
     street_and_number       VARCHAR(255),
     plz                     VARCHAR(20),
@@ -185,6 +186,9 @@ ALTER TABLE health_stats
 ALTER TABLE household
     ADD CONSTRAINT uc_household_primary_contact UNIQUE (primary_contact_id);
 
+ALTER TABLE users
+    ADD CONSTRAINT uc_users_oidc_subject UNIQUE (oidc_subject);
+
 ALTER TABLE camp_stats
     ADD CONSTRAINT FK_CAMP_STATS_ON_PARTICIPANT FOREIGN KEY (participant_id) REFERENCES participants (id);
 
@@ -201,10 +205,10 @@ ALTER TABLE health_stats
     ADD CONSTRAINT FK_HEALTH_STATS_ON_PARTICIPANT FOREIGN KEY (participant_id) REFERENCES participants (id);
 
 ALTER TABLE household
-    ADD CONSTRAINT FK_HOUSEHOLD_ON_PRIMARY_CONTACT FOREIGN KEY (primary_contact_id) REFERENCES users (oidc_subject);
+    ADD CONSTRAINT FK_HOUSEHOLD_ON_PRIMARY_CONTACT FOREIGN KEY (primary_contact_id) REFERENCES users (email);
 
 ALTER TABLE household
-    ADD CONSTRAINT FK_HOUSEHOLD_ON_SECONDARY_CONTACT FOREIGN KEY (secondary_contact_id) REFERENCES users (oidc_subject);
+    ADD CONSTRAINT FK_HOUSEHOLD_ON_SECONDARY_CONTACT FOREIGN KEY (secondary_contact_id) REFERENCES users (email);
 
 ALTER TABLE IntoleranceSelection
     ADD CONSTRAINT FK_INTOLERANCESELECTION_ON_INTOLERANCE FOREIGN KEY (intolerance_id) REFERENCES global_definitions (id);
@@ -216,7 +220,7 @@ ALTER TABLE room_leader_assignment
     ADD CONSTRAINT FK_ROOM_LEADER_ASSIGNMENT_ON_ROOM FOREIGN KEY (room_id) REFERENCES room (id);
 
 ALTER TABLE room_leader_assignment
-    ADD CONSTRAINT FK_ROOM_LEADER_ASSIGNMENT_ON_USER FOREIGN KEY (user_oidc_subject) REFERENCES users (oidc_subject);
+    ADD CONSTRAINT FK_ROOM_LEADER_ASSIGNMENT_ON_USER FOREIGN KEY (user_email) REFERENCES users (email);
 
 ALTER TABLE camp_participant
     ADD CONSTRAINT FK_CAMP_PARTICIPANT_ON_PARTICIPANT FOREIGN KEY (participant_id) REFERENCES participants (id);
@@ -315,8 +319,8 @@ SELECT p.id                            AS participant_id,
        hs.excluded_activities          AS health_stats_excluded_activities
 FROM participants p
          LEFT JOIN household h ON h.id = p.household_id
-         LEFT JOIN users u ON u.oidc_subject = h.primary_contact_id
-         LEFT JOIN users secondary ON secondary.oidc_subject = h.secondary_contact_id
+         LEFT JOIN users u ON u.email = h.primary_contact_id
+         LEFT JOIN users secondary ON secondary.email = h.secondary_contact_id
          LEFT JOIN camp_stats cmp ON cmp.participant_id = p.id
          LEFT JOIN health_stats hs ON hs.participant_id = p.id;
 
@@ -408,6 +412,6 @@ FROM camp_participant cp
          JOIN camp c ON c.id = cp.camp_id
          LEFT JOIN camp_stats cmp ON cmp.participant_id = p.id
          LEFT JOIN household h ON h.id = s.household_id
-         LEFT JOIN users primary_contact ON primary_contact.oidc_subject = h.primary_contact_id
-         LEFT JOIN users secondary_contact ON secondary_contact.oidc_subject = h.secondary_contact_id
+         LEFT JOIN users primary_contact ON primary_contact.email = h.primary_contact_id
+         LEFT JOIN users secondary_contact ON secondary_contact.email = h.secondary_contact_id
          LEFT JOIN health_stats hs ON hs.participant_id = p.id;

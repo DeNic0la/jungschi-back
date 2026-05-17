@@ -43,7 +43,8 @@ public class IntoleranceSelectionControllerTest {
     @TestSecurity(user = "test-user", roles = {"user"})
     @OidcSecurity(claims = {
             @Claim(key = "sub", value = "intolerance-test-sub"),
-            @Claim(key = "preferred_username", value = "testuser")
+            @Claim(key = "preferred_username", value = "testuser"),
+            @Claim(key = "email", value = "intolerance-test@example.com")
     })
     public void testIntoleranceSelectionCrud() {
         // 1. Create a participant

@@ -16,7 +16,8 @@ public class HealthStatsControllerTest {
     @TestSecurity(user = "test-user", roles = {"user"})
     @OidcSecurity(claims = {
             @Claim(key = "sub", value = "health-test-sub"),
-            @Claim(key = "preferred_username", value = "testuser")
+            @Claim(key = "preferred_username", value = "testuser"),
+            @Claim(key = "email", value = "health-test@example.com")
     })
     public void testHealthStatsCrudOperation() {
         // 1. Create a participant
@@ -68,8 +69,9 @@ public class HealthStatsControllerTest {
     @Test
     @TestSecurity(user = "other-user", roles = {"user"})
     @OidcSecurity(claims = {
-            @Claim(key = "sub", value = "user2"),
-            @Claim(key = "preferred_username", value = "user2")
+            @Claim(key = "sub", value = "user2-health"),
+            @Claim(key = "preferred_username", value = "user2-health"),
+            @Claim(key = "email", value = "user2-health@example.com")
     })
     public void testHealthStatsIsolation() {
         // Provision the user first

@@ -18,14 +18,14 @@ import java.util.List;
 public class AppUser extends PanacheEntityBase {
 
     @Id
-    @Column(name = "oidc_subject", nullable = false, updatable = false)
+    @Column(name = "email", nullable = false, updatable = false)
+    public String email;
+
+    @Column(name = "oidc_subject")
     public String oidcSubject;
 
     @Column(name = "username")
     public String username;
-
-    @Column(name = "email")
-    public String email;
 
     @Column(name = "first_name")
     public String firstName;
@@ -44,6 +44,9 @@ public class AppUser extends PanacheEntityBase {
 
     @Column(name = "roles")
     public String roles;
+
+    @Column(name = "openid_connect_data", columnDefinition = "TEXT")
+    public String openidConnectData;
 
     @Column(name = "created_at", nullable = false)
     public Instant createdAt;

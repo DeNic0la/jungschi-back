@@ -5,6 +5,8 @@ import ch.denic0la.model.CampParticipant;
 import ch.denic0la.model.Household;
 import ch.denic0la.model.Participant;
 import ch.denic0la.model.Room;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.oidc.UserInfo;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -12,13 +14,21 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.jboss.logging.Logger;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.TreeSet;
+import java.util.UUID;
 
 @ApplicationScoped
 public class CurrentUserProvisioningService {
+
+    private static final Logger LOG = Logger.getLogger(CurrentUserProvisioningService.class);
 
     @Inject
     JsonWebToken jwt;
@@ -29,59 +39,40 @@ public class CurrentUserProvisioningService {
     @Inject
     SecurityIdentity identity;
 
-    public AppUser getCurrentUser() {
-        String sub = jwt.getSubject();
-        if (sub == null || sub.isBlank()) {
-            throw new IllegalStateException("Missing OIDC subject claim");
-        }
+    @Inject
+    ObjectMapper objectMapper;
 
-        AppUser user = AppUser.findById(sub);
+    public AppUser getCurrentUser() {
+        String email = currentEmail();
+
+        AppUser user = AppUser.findById(email);
         if (user == null){
-            throw new IllegalStateException("No User found for OIDC subject: " + sub );
+            throw new IllegalStateException("No User found for email: " + email);
         }
         return user;
     }
 
     @Transactional
     public AppUser ensureCurrentUser() {
-        String sub = jwt.getSubject();
-        if (sub == null || sub.isBlank()) {
-            throw new IllegalStateException("Missing OIDC subject claim");
-        }
+        String email = currentEmail();
+        String oidcSubject = currentOidcSubject(email);
 
-        AppUser user = AppUser.findById(sub);
+        AppUser user = AppUser.findById(email);
         boolean isNew = false;
 
         if (user == null) {
             user = new AppUser();
-            user.oidcSubject = sub;
+            user.email = email;
+            user.oidcSubject = oidcSubject;
             user.createdAt = Instant.now();
+            loadOpenIdConnectData(user);
+            LOG.debugf("Provisioned new user from OpenID Connect data: email=%s oidcSubject=%s openIdConnectData=%s",
+                    user.email,
+                    user.oidcSubject,
+                    user.openidConnectData);
             isNew = true;
-        }
-
-        user.username = stringClaim("preferred_username");
-        user.email = firstNonBlank(
-                stringClaim("email"),
-                userInfoString("email")
-        );
-        user.firstName = firstNonBlank(
-                stringClaim("given_name"),
-                userInfoString("given_name")
-        );
-        user.lastName = firstNonBlank(
-                stringClaim("family_name"),
-                userInfoString("family_name")
-        );
-        user.pictureUrl = firstNonBlank(
-                stringClaim("picture"),
-                userInfoString("picture"),
-                user.pictureUrl
-        );
-        if (user.phoneNumber == null || user.phoneNumber.isBlank()){
-            user.phoneNumber = firstNonBlank(
-                    stringClaim("phone_number"),
-                    userInfoString("phone_number")
-            );
+        } else if (user.oidcSubject == null || user.oidcSubject.isBlank()) {
+            user.oidcSubject = oidcSubject;
         }
         user.roles = identity.getRoles().isEmpty()
                 ? null
@@ -121,8 +112,8 @@ public class CurrentUserProvisioningService {
     public boolean isHouseholdContact(Household household, AppUser user) {
         return household != null
                 && user != null
-                && ((household.primaryContact != null && household.primaryContact.oidcSubject.equals(user.oidcSubject))
-                || (household.secondaryContact != null && household.secondaryContact.oidcSubject.equals(user.oidcSubject)));
+                && ((household.primaryContact != null && household.primaryContact.email.equals(user.email))
+                || (household.secondaryContact != null && household.secondaryContact.email.equals(user.email)));
     }
 
     public boolean canReadParticipant(Participant participant, AppUser user) {
@@ -172,29 +163,135 @@ public class CurrentUserProvisioningService {
         return identity.hasRole("ADMIN");
     }
 
-    private String stringClaim(String name) {
+    private void loadOpenIdConnectData(AppUser user) {
+        String principalName = principalName();
+        user.username = firstNonBlank(
+                tokenString("preferred_username"),
+                userInfoString("preferred_username"),
+                principalName
+        );
+        user.firstName = firstNonBlank(
+                tokenString("given_name"),
+                userInfoString("given_name")
+        );
+        user.lastName = firstNonBlank(
+                tokenString("family_name"),
+                userInfoString("family_name")
+        );
+        user.pictureUrl = firstNonBlank(
+                tokenString("picture"),
+                userInfoString("picture"),
+                tokenString("profile_image"),
+                userInfoString("profile_image")
+        );
+        user.phoneNumber = firstNonBlank(
+                tokenString("phone_number"),
+                userInfoString("phone_number")
+        );
+        user.openidConnectData = openIdConnectDataJson();
+    }
+
+    private String tokenString(String name) {
         Object value = jwt.getClaim(name);
         return value != null ? value.toString() : null;
     }
 
+    private String currentEmail() {
+        String email = firstNonBlank(
+                tokenString("email"),
+                userInfoString("email")
+        );
+        if (email == null) {
+            throw new IllegalStateException("Missing OIDC email claim; email is required as the application user id");
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String currentOidcSubject(String email) {
+        String subject = firstNonBlank(jwt.getSubject(), tokenString("sub"), userInfoString("sub"));
+        if (subject != null) {
+            return subject;
+        }
+
+        String fallbackUserKey = firstNonBlank(
+                tokenString("preferred_username"),
+                userInfoString("preferred_username"),
+                email,
+                principalName()
+        );
+
+        String issuer = firstNonBlank(jwt.getIssuer(), tokenString("iss"), "unknown-issuer");
+        String fallbackSubject = fallbackSubject(issuer, fallbackUserKey);
+        LOG.warn("OIDC token is missing the subject claim; using issuer/user fallback identity key");
+        return fallbackSubject;
+    }
+
+    private String fallbackSubject(String issuer, String fallbackUserKey) {
+        String subject = issuer + "|" + fallbackUserKey;
+        if (subject.length() <= 100) {
+            return subject;
+        }
+        UUID stableId = UUID.nameUUIDFromBytes(subject.getBytes(StandardCharsets.UTF_8));
+        return "missing-sub|" + stableId;
+    }
+
+    private String principalName() {
+        return identity.getPrincipal() != null ? identity.getPrincipal().getName() : null;
+    }
+
+    private String openIdConnectDataJson() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("tokenClaims", tokenClaims());
+        data.put("userInfo", userInfoClaims());
+        data.put("principalName", principalName());
+        data.put("roles", new TreeSet<>(identity.getRoles()));
+        try {
+            return objectMapper.writeValueAsString(data);
+        } catch (JsonProcessingException e) {
+            LOG.debug("Could not serialize OpenID Connect data for new user", e);
+            return "{}";
+        }
+    }
+
+    private Map<String, Object> tokenClaims() {
+        Map<String, Object> claims = new LinkedHashMap<>();
+        for (String name : new TreeSet<>(jwt.getClaimNames())) {
+            claims.put(name, jwt.getClaim(name));
+        }
+        return claims;
+    }
+
+    private Object userInfoClaims() {
+        UserInfo ui = currentUserInfo();
+        if (ui == null) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(ui.getJsonObject().toString(), Object.class);
+        } catch (JsonProcessingException e) {
+            LOG.debug("Could not parse OpenID Connect UserInfo data for new user", e);
+            return ui.getUserInfoString();
+        }
+    }
+
     private String userInfoString(String name) {
-        if (userInfoInstance.isResolvable()) {
-            UserInfo ui = userInfoInstance.get();
-            if (ui.contains(name)) {
-                Object value = ui.get(name);
-                return value != null ? value.toString() : null;
-            }
+        UserInfo ui = currentUserInfo();
+        if (ui != null && ui.contains(name)) {
+            return ui.getString(name);
         }
         return null;
     }
 
-    private String firstNonBlank(String a, String b) {
-        if (a != null && !a.isBlank()) return a;
-        if (b != null && !b.isBlank()) return b;
-        return null;
+    private UserInfo currentUserInfo() {
+        return userInfoInstance.isResolvable() ? userInfoInstance.get() : null;
     }
 
-    private String firstNonBlank(String a, String b, String c) {
-        return firstNonBlank(firstNonBlank(a, b), c);
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 }
