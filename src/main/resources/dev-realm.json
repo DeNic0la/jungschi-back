@@ -68,7 +68,39 @@
         "clientRole": false,
         "containerId": "jungschi"
       }
-    ]
+    ],
+    "client": {
+      "backend-service": [
+        {
+          "name": "guardian",
+          "description": "Guardian backend-service role",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "backend-service"
+        },
+        {
+          "name": "Jungschiteam",
+          "description": "Team backend-service role",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "backend-service"
+        },
+        {
+          "name": "ADMIN",
+          "description": "Admin backend-service role",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "backend-service"
+        },
+        {
+          "name": "Sanitaet",
+          "description": "Sanitaet backend-service role",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "backend-service"
+        }
+      ]
+    }
   },
   "defaultRole": {
     "name": "default-roles-jungschi",
@@ -82,7 +114,7 @@
   ],
   "users": [
     {
-      "username": "guardian@example.com",
+      "username": "guardian",
       "enabled": true,
       "emailVerified": true,
       "firstName": "Gabi",
@@ -113,7 +145,7 @@
       }
     },
     {
-      "username": "team@example.com",
+      "username": "team",
       "enabled": true,
       "emailVerified": true,
       "firstName": "Tina",
@@ -146,7 +178,7 @@
       }
     },
     {
-      "username": "admin@example.com",
+      "username": "admin",
       "enabled": true,
       "emailVerified": true,
       "firstName": "Ada",
@@ -282,24 +314,6 @@
         "access.token.lifespan": "3600",
         "client.secret.creation.time": "1709000000"
       },
-      "roles": [
-        {
-          "name": "guardian",
-          "description": "Guardian backend-service role"
-        },
-        {
-          "name": "Jungschiteam",
-          "description": "Team backend-service role"
-        },
-        {
-          "name": "ADMIN",
-          "description": "Admin backend-service role"
-        },
-        {
-          "name": "Sanitaet",
-          "description": "Sanitaet backend-service role"
-        }
-      ],
       "defaultClientScopes": [
         "realm-roles",
         "app-user-profile",
