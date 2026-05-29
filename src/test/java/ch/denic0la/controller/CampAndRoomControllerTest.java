@@ -3,11 +3,13 @@ package ch.denic0la.controller;
 import ch.denic0la.model.AppUser;
 import ch.denic0la.model.Camp;
 import ch.denic0la.model.CampParticipant;
+import ch.denic0la.model.CampParticipantMedication;
 import ch.denic0la.model.Gender;
 import ch.denic0la.model.Household;
 import ch.denic0la.model.Participant;
 import ch.denic0la.model.Room;
 import ch.denic0la.model.SignUp;
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.oidc.Claim;
@@ -22,6 +24,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
@@ -138,6 +142,96 @@ public class CampAndRoomControllerTest {
                 .then()
                 .statusCode(200)
                 .body("name", is("Zelt Fuchs"));
+    }
+
+    @Test
+    @TestSecurity(user = "camp-admin", roles = {"ADMIN"})
+    @OidcSecurity(claims = {
+            @Claim(key = "sub", value = "camp-admin"),
+            @Claim(key = "preferred_username", value = "camp-admin"),
+            @Claim(key = "email", value = "admin@example.com")
+    })
+    public void adminCanDeleteEndedCampWithBulkFeedbackWhileKeepingSignupsAndParticipants() {
+        Long signupId = createEndedCampWithSignup();
+
+        given()
+                .contentType("application/json")
+                .body("""
+                        {
+                          "feedbackByState": {
+                            "COMPLETED": "Danke für die Anmeldung"
+                          }
+                        }
+                        """)
+                .when().delete("/api/camps/camp-ended")
+                .then()
+                .statusCode(204);
+
+        QuarkusTransaction.requiringNew().run(() -> {
+            SignUp signUp = SignUp.findById(signupId);
+            assertNull(signUp.camp);
+            assertEquals("camp-ended", signUp.archivedCampId);
+            assertEquals("Danke für die Anmeldung", signUp.feedback);
+            assertEquals(0, CampParticipant.count("signUp", signUp));
+            assertEquals(0, CampParticipantMedication.count());
+            assertEquals(0, Room.count("camp.id", "camp-ended"));
+            assertEquals(2, Participant.count());
+        });
+    }
+
+    @Test
+    @TestSecurity(user = "camp-admin", roles = {"ADMIN"})
+    @OidcSecurity(claims = {
+            @Claim(key = "sub", value = "camp-admin"),
+            @Claim(key = "preferred_username", value = "camp-admin"),
+            @Claim(key = "email", value = "admin@example.com")
+    })
+    public void adminCannotDeleteCampThatHasNotEnded() {
+        given()
+                .contentType("application/json")
+                .body("{\"feedbackByState\": {}}")
+                .when().delete("/api/camps/camp-visible")
+                .then()
+                .statusCode(400);
+    }
+
+    private Long createEndedCampWithSignup() {
+        return QuarkusTransaction.requiringNew().call(() -> {
+            AppUser guardian = user("ended-guardian", "ended@example.com", "End", "Ed", "guardian");
+            Camp endedCamp = camp("camp-ended", "Ended Camp", LocalDate.of(2025, 7, 10));
+            endedCamp.endDate = LocalDate.of(2025, 7, 17);
+
+            Household household = new Household();
+            household.primaryContact = guardian;
+            household.persist();
+
+            Participant participant = participant(household, "Ended", "Kid", Gender.FEMALE);
+
+            SignUp signUp = new SignUp();
+            signUp.household = household;
+            signUp.camp = endedCamp;
+            signUp.state = SignUp.State.COMPLETED;
+            signUp.persist();
+
+            Room room = new Room();
+            room.camp = endedCamp;
+            room.name = "Archive Room";
+            room.persist();
+
+            CampParticipant campParticipant = new CampParticipant();
+            campParticipant.participant = participant;
+            campParticipant.signUp = signUp;
+            campParticipant.camp = endedCamp;
+            campParticipant.room = room;
+            campParticipant.persist();
+
+            CampParticipantMedication medication = new CampParticipantMedication();
+            medication.campParticipant = campParticipant;
+            medication.medicationName = "Archive Med";
+            medication.persist();
+
+            return signUp.id;
+        });
     }
 
     private AppUser user(String sub, String email, String firstName, String lastName, String roles) {

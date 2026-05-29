@@ -126,6 +126,31 @@ public class CurrentUserProvisioningService {
         return participant != null && (canViewAnything() || isHouseholdContact(participant.household, user));
     }
 
+    public boolean canReadCampParticipant(CampParticipant campParticipant, AppUser user) {
+        return campParticipant != null
+                && campParticipant.participant != null
+                && (isAdmin()
+                || identity.hasRole("Sanitaet")
+                || isHouseholdContact(campParticipant.participant.household, user));
+    }
+
+    public boolean canViewCampParticipantTeamOperationalData(CampParticipant campParticipant) {
+        return campParticipant != null && (identity.hasRole("Jungschiteam") || isAdmin());
+    }
+
+    public boolean canViewRoomLeaderInfo(CampParticipant campParticipant, AppUser user) {
+        if (campParticipant != null
+                && campParticipant.participant != null
+                && isHouseholdContact(campParticipant.participant.household, user)) {
+            return true;
+        }
+        if (campParticipant == null || campParticipant.room == null || user == null || user.email == null) {
+            return false;
+        }
+        return campParticipant.room.leaders.stream()
+                .anyMatch(leader -> leader.email != null && leader.email.equals(user.email));
+    }
+
     public boolean canWriteParticipant(Participant participant, AppUser user) {
         return participant != null && (isAdmin() || isHouseholdContact(participant.household, user));
     }

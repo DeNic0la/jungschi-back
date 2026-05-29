@@ -11,6 +11,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +32,18 @@ public class SignUp extends PanacheEntity {
     @ManyToOne
     @JoinColumn(name = "camp_id")
     public Camp camp;
+
+    @Column(name = "archived_camp_id")
+    public String archivedCampId;
+
+    @Column(name = "archived_camp_title")
+    public String archivedCampTitle;
+
+    @Column(name = "archived_camp_start_date")
+    public LocalDate archivedCampStartDate;
+
+    @Column(name = "archived_camp_end_date")
+    public LocalDate archivedCampEndDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "state")

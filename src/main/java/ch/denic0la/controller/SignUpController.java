@@ -7,6 +7,7 @@ import ch.denic0la.model.CampParticipant;
 import ch.denic0la.model.CampParticipantMedication;
 import ch.denic0la.model.Household;
 import ch.denic0la.model.Participant;
+import ch.denic0la.model.Room;
 import ch.denic0la.model.SignUp;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
@@ -54,12 +55,13 @@ public class SignUpController {
     @Transactional
     @RolesAllowed({"Jungschiteam", "ADMIN"})
     public List<TeamSignUpDto> listForReview(@PathParam("campId") String campId) {
+        AppUser user = provisioningService.ensureCurrentUser();
         Camp camp = findCamp(campId);
         return SignUp.<SignUp>list("camp", camp).stream()
                 .sorted(Comparator
-                        .comparing((SignUp signUp) -> signUp.state)
+                        .comparingInt((SignUp signUp) -> reviewStateOrder(signUp.state))
                         .thenComparing(signUp -> signUp.household != null ? signUp.household.id : 0))
-                .map(this::toTeamDto)
+                .map(signUp -> toTeamDto(signUp, user))
                 .toList();
     }
 
@@ -145,9 +147,10 @@ public class SignUpController {
     @Transactional
     @RolesAllowed({"Jungschiteam", "ADMIN"})
     public TeamSignUpDto updateFeedback(@PathParam("id") Long id, FeedbackInput input) {
+        AppUser user = provisioningService.ensureCurrentUser();
         SignUp signUp = findSignUp(id);
         signUp.feedback = blankToNull(input == null ? null : input.feedback());
-        return toTeamDto(signUp);
+        return toTeamDto(signUp, user);
     }
 
     @PUT
@@ -155,6 +158,7 @@ public class SignUpController {
     @Transactional
     @RolesAllowed({"Jungschiteam", "ADMIN"})
     public TeamSignUpDto reject(@PathParam("id") Long id, FeedbackInput input) {
+        AppUser user = provisioningService.ensureCurrentUser();
         SignUp signUp = findSignUp(id);
         String feedback = blankToNull(input == null ? null : input.feedback());
         if (feedback == null) {
@@ -162,7 +166,7 @@ public class SignUpController {
         }
         signUp.feedback = feedback;
         signUp.reopen();
-        return toTeamDto(signUp);
+        return toTeamDto(signUp, user);
     }
 
     @PUT
@@ -170,12 +174,28 @@ public class SignUpController {
     @Transactional
     @RolesAllowed({"Jungschiteam", "ADMIN"})
     public TeamSignUpDto approve(@PathParam("id") Long id) {
+        AppUser user = provisioningService.ensureCurrentUser();
         SignUp signUp = findSignUp(id);
         if (signUp.state != SignUp.State.COMPLETED) {
             throw new BadRequestException("Only completed signups can be approved");
         }
         signUp.approve();
-        return toTeamDto(signUp);
+        return toTeamDto(signUp, user);
+    }
+
+    @GET
+    @Path("/camp-participants/{campParticipantId}")
+    @Transactional
+    @RolesAllowed({"guardian", "Jungschiteam", "ADMIN", "Sanitaet"})
+    public CampParticipantDetailDto getCampParticipant(@PathParam("campParticipantId") Long campParticipantId) {
+        AppUser user = provisioningService.ensureCurrentUser();
+        CampParticipant campParticipant = CampParticipant.findById(campParticipantId);
+        if (campParticipant == null
+                || (!provisioningService.canReadCampParticipant(campParticipant, user)
+                && !provisioningService.canViewCampParticipantTeamOperationalData(campParticipant))) {
+            throw new NotFoundException("Camp participant not found");
+        }
+        return toDetailDto(campParticipant, user);
     }
 
     @PUT
@@ -185,6 +205,7 @@ public class SignUpController {
     public TeamSignUpDto assignRoom(
             @PathParam("campParticipantId") Long campParticipantId,
             AssignRoomInput input) {
+        AppUser user = provisioningService.ensureCurrentUser();
         CampParticipant campParticipant = CampParticipant.findById(campParticipantId);
         if (campParticipant == null || campParticipant.signUp == null) {
             throw new NotFoundException("Camp participant not found");
@@ -192,16 +213,17 @@ public class SignUpController {
         if (input == null || input.roomId() == null) {
             campParticipant.room = null;
         } else {
-            ch.denic0la.model.Room room = ch.denic0la.model.Room.findById(input.roomId());
+            Room room = Room.findById(input.roomId());
             if (room == null
                     || room.camp == null
                     || campParticipant.camp == null
                     || !Objects.equals(room.camp.id, campParticipant.camp.id)) {
                 throw new BadRequestException("Room must belong to the same camp");
             }
+            validateRoomAssignment(campParticipant, room);
             campParticipant.room = room;
         }
-        return toTeamDto(campParticipant.signUp);
+        return toTeamDto(campParticipant.signUp, user);
     }
 
     private Household householdForCurrentUser() {
@@ -222,6 +244,30 @@ public class SignUpController {
             throw new NotFoundException("Signup not found");
         }
         return signUp;
+    }
+
+    private int reviewStateOrder(SignUp.State state) {
+        if (state == SignUp.State.COMPLETED) {
+            return 0;
+        }
+        if (state == SignUp.State.IN_PROGRESS) {
+            return 1;
+        }
+        return 2;
+    }
+
+    private void validateRoomAssignment(CampParticipant campParticipant, Room room) {
+        if (campParticipant.participant == null) {
+            throw new BadRequestException("Camp participant has no participant data");
+        }
+        boolean currentlyAssigned = campParticipant.room != null
+                && Objects.equals(campParticipant.room.id, room.id);
+        if (room.gender != null && !room.gender.equals(campParticipant.participant.gender)) {
+            throw new BadRequestException("Room gender does not match participant gender");
+        }
+        if (!currentlyAssigned && room.maxCapacity != null && CampParticipant.count("room", room) >= room.maxCapacity) {
+            throw new BadRequestException("Room is full");
+        }
     }
 
     private void replaceCampParticipants(
@@ -312,10 +358,10 @@ public class SignUpController {
                 medications);
     }
 
-    private TeamSignUpDto toTeamDto(SignUp signUp) {
+    private TeamSignUpDto toTeamDto(SignUp signUp, AppUser user) {
         List<TeamCampParticipantDto> campParticipants = new ArrayList<>(signUp.campParticipants).stream()
                 .sorted(Comparator.comparing(campParticipant -> campParticipant.id))
-                .map(this::toTeamDto)
+                .map(campParticipant -> toTeamDto(campParticipant, user))
                 .toList();
         return new TeamSignUpDto(
                 signUp.id,
@@ -329,9 +375,11 @@ public class SignUpController {
                 campParticipants);
     }
 
-    private TeamCampParticipantDto toTeamDto(CampParticipant campParticipant) {
+    private TeamCampParticipantDto toTeamDto(CampParticipant campParticipant, AppUser user) {
         Participant participant = campParticipant.participant;
-        ch.denic0la.model.Room room = campParticipant.room;
+        Room room = campParticipant.room;
+        boolean fullAccess = provisioningService.canReadCampParticipant(campParticipant, user);
+        boolean canViewRoomLeaderInfo = provisioningService.canViewRoomLeaderInfo(campParticipant, user);
         List<MedicationDto> medications = new ArrayList<>(campParticipant.medications).stream()
                 .sorted(Comparator.comparing(medication -> medication.id))
                 .map(medication -> new MedicationDto(
@@ -349,12 +397,49 @@ public class SignUpController {
                 participant != null ? participant.lastname : null,
                 participant != null ? participant.gender : null,
                 campParticipant.schoolClass,
-                campParticipant.infosZimmerleitung,
-                campParticipant.bemerkungen,
-                campParticipant.drugConsent,
+                canViewRoomLeaderInfo ? campParticipant.infosZimmerleitung : null,
+                fullAccess ? campParticipant.bemerkungen : null,
+                fullAccess ? campParticipant.drugConsent : null,
                 room != null ? room.id : null,
                 room != null ? room.name : null,
-                medications);
+                fullAccess ? medications : List.of(),
+                fullAccess,
+                canViewRoomLeaderInfo);
+    }
+
+    private CampParticipantDetailDto toDetailDto(CampParticipant campParticipant, AppUser user) {
+        Participant participant = campParticipant.participant;
+        Room room = campParticipant.room;
+        boolean fullAccess = provisioningService.canReadCampParticipant(campParticipant, user);
+        boolean canViewRoomLeaderInfo = provisioningService.canViewRoomLeaderInfo(campParticipant, user);
+        List<MedicationDto> medications = fullAccess
+                ? new ArrayList<>(campParticipant.medications).stream()
+                .sorted(Comparator.comparing(medication -> medication.id))
+                .map(medication -> new MedicationDto(
+                        medication.medicationName,
+                        medication.dose,
+                        medication.frequency,
+                        medication.purpose,
+                        medication.needsHelp,
+                        medication.confidential))
+                .toList()
+                : List.of();
+        return new CampParticipantDetailDto(
+                campParticipant.id,
+                participant != null ? participant.id : null,
+                participant != null ? participant.firstname : null,
+                participant != null ? participant.lastname : null,
+                fullAccess && participant != null ? participant.dateOfBirth : null,
+                participant != null ? participant.gender : null,
+                campParticipant.schoolClass,
+                canViewRoomLeaderInfo ? campParticipant.infosZimmerleitung : null,
+                fullAccess ? campParticipant.bemerkungen : null,
+                fullAccess ? campParticipant.drugConsent : null,
+                room != null ? room.id : null,
+                room != null ? room.name : null,
+                medications,
+                fullAccess,
+                canViewRoomLeaderInfo);
     }
 
     private String blankToNull(String value) {
@@ -434,8 +519,27 @@ public class SignUpController {
             String schoolClass,
             String infosZimmerleitung,
             String bemerkungen,
-            boolean drugConsent,
+            Boolean drugConsent,
             Long roomId,
             String roomName,
-            List<MedicationDto> medications) {}
+            List<MedicationDto> medications,
+            boolean fullAccess,
+            boolean roomLeaderInfoVisible) {}
+
+    public record CampParticipantDetailDto(
+            Long id,
+            Long participantId,
+            String firstname,
+            String lastname,
+            LocalDate dateOfBirth,
+            ch.denic0la.model.Gender gender,
+            String schoolClass,
+            String infosZimmerleitung,
+            String bemerkungen,
+            Boolean drugConsent,
+            Long roomId,
+            String roomName,
+            List<MedicationDto> medications,
+            boolean fullAccess,
+            boolean roomLeaderInfoVisible) {}
 }

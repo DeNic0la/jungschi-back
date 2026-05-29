@@ -9,6 +9,7 @@ import ch.denic0la.model.Room;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
@@ -24,7 +25,9 @@ import jakarta.ws.rs.core.MediaType;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Path("/api/rooms")
@@ -36,6 +39,9 @@ public class RoomController {
     @Inject
     CurrentUserProvisioningService provisioningService;
 
+    @Inject
+    EntityManager entityManager;
+
     @GET
     @Path("/{id}")
     @Transactional
@@ -45,7 +51,7 @@ public class RoomController {
         if (!provisioningService.canViewRoom(room, user)) {
             throw new NotFoundException("Room not found");
         }
-        return toDto(room);
+        return toDto(room, assignedCount(room));
     }
 
     @GET
@@ -54,10 +60,34 @@ public class RoomController {
     @RolesAllowed({"Jungschiteam", "ADMIN"})
     public List<RoomDto> getForCamp(@PathParam("campId") String campId) {
         Camp camp = findCamp(campId);
+        Map<Long, Long> assignedCounts = assignedCountsForCamp(camp);
         return Room.<Room>list("camp", camp).stream()
                 .sorted(Comparator.comparing((Room room) -> room.name == null ? "" : room.name)
                         .thenComparing(room -> room.id))
-                .map(this::toDto)
+                .map(room -> toDto(room, assignedCounts.getOrDefault(room.id, 0L)))
+                .toList();
+    }
+
+    @GET
+    @Path("/camp/{campId}/available-for/{campParticipantId}")
+    @Transactional
+    @RolesAllowed({"Jungschiteam", "ADMIN"})
+    public List<RoomDto> getAvailableForCampParticipant(
+            @PathParam("campId") String campId,
+            @PathParam("campParticipantId") Long campParticipantId) {
+        Camp camp = findCamp(campId);
+        CampParticipant campParticipant = CampParticipant.findById(campParticipantId);
+        if (campParticipant == null
+                || campParticipant.camp == null
+                || !Objects.equals(campParticipant.camp.id, camp.id)) {
+            throw new NotFoundException("Camp participant not found");
+        }
+        Map<Long, Long> assignedCounts = assignedCountsForCamp(camp);
+        return Room.<Room>list("camp", camp).stream()
+                .filter(room -> isAssignable(room, campParticipant, assignedCounts))
+                .sorted(Comparator.comparing((Room room) -> room.name == null ? "" : room.name)
+                        .thenComparing(room -> room.id))
+                .map(room -> toDto(room, assignedCounts.getOrDefault(room.id, 0L)))
                 .toList();
     }
 
@@ -68,7 +98,7 @@ public class RoomController {
         Room room = new Room();
         apply(room, input);
         room.persist();
-        return toDto(room);
+        return toDto(room, 0L);
     }
 
     @PUT
@@ -81,7 +111,7 @@ public class RoomController {
             throw new NotFoundException("Room not found");
         }
         apply(room, input);
-        return toDto(room);
+        return toDto(room, assignedCount(room));
     }
 
     @DELETE
@@ -109,6 +139,9 @@ public class RoomController {
             throw new BadRequestException("name is required");
         }
         room.maxCapacity = input.maxCapacity();
+        if (room.maxCapacity != null && room.maxCapacity < 1) {
+            throw new BadRequestException("maxCapacity must be positive");
+        }
         room.gender = input.gender();
         room.leaders.clear();
         if (input.leaderEmails() != null) {
@@ -136,12 +169,17 @@ public class RoomController {
         return camp;
     }
 
-    private RoomDto toDto(Room room) {
+    private RoomDto toDto(Room room, long assignedCount) {
+        Integer remainingCapacity = room.maxCapacity == null
+                ? null
+                : Math.max(0, room.maxCapacity - Math.toIntExact(assignedCount));
         return new RoomDto(
                 room.id,
                 room.camp != null ? room.camp.id : null,
                 room.name,
                 room.maxCapacity,
+                Math.toIntExact(assignedCount),
+                remainingCapacity,
                 room.gender,
                 room.leaders.stream()
                         .sorted(Comparator.comparing((AppUser leader) -> leader.firstName == null ? "" : leader.firstName)
@@ -153,6 +191,46 @@ public class RoomController {
                                 leader.lastName,
                                 leader.pictureUrl))
                         .toList());
+    }
+
+    private long assignedCount(Room room) {
+        return room == null ? 0 : CampParticipant.count("room", room);
+    }
+
+    private Map<Long, Long> assignedCountsForCamp(Camp camp) {
+        List<Object[]> rows = entityManager
+                .createQuery("""
+                        select cp.room.id, count(cp)
+                        from CampParticipant cp
+                        where cp.room is not null and cp.room.camp = :camp
+                        group by cp.room.id
+                        """, Object[].class)
+                .setParameter("camp", camp)
+                .getResultList();
+        Map<Long, Long> counts = new HashMap<>();
+        for (Object[] row : rows) {
+            counts.put((Long) row[0], (Long) row[1]);
+        }
+        return counts;
+    }
+
+    private boolean isAssignable(
+            Room room,
+            CampParticipant campParticipant,
+            Map<Long, Long> assignedCounts) {
+        if (room == null || campParticipant == null || campParticipant.participant == null) {
+            return false;
+        }
+        boolean currentlyAssigned = campParticipant.room != null
+                && Objects.equals(campParticipant.room.id, room.id);
+        if (room.gender != null && !room.gender.equals(campParticipant.participant.gender)) {
+            return currentlyAssigned;
+        }
+        if (room.maxCapacity == null) {
+            return true;
+        }
+        long assignedCount = assignedCounts.getOrDefault(room.id, 0L);
+        return assignedCount < room.maxCapacity || currentlyAssigned;
     }
 
     private String blankToNull(String value) {
@@ -171,6 +249,8 @@ public class RoomController {
             String campId,
             String name,
             Integer maxCapacity,
+            int assignedCount,
+            Integer remainingCapacity,
             Gender gender,
             List<RoomLeaderDto> leaders) {}
 
