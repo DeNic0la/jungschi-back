@@ -4,12 +4,10 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.oidc.OidcSecurity;
 import io.quarkus.test.security.oidc.Claim;
-import io.quarkus.test.security.oidc.UserInfo;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 
 @QuarkusTest
 public class UserControllerTest {
@@ -28,8 +26,30 @@ public class UserControllerTest {
                 .statusCode(200)
                 .body("username", is("testuser"))
                 .body("email", is("test@example.com"))
-                .body("oidcSubject", is("test-oidc-sub"))
-                .body("id", is("test-oidc-sub"));
+                .body("id", is("test@example.com"));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"guardian", "Jungschiteam", "ADMIN", "Sanitaet"})
+    @OidcSecurity(claims = {
+            @Claim(key = "iss", value = "http://localhost:8180/realms/jungschi"),
+            @Claim(key = "preferred_username", value = "admin"),
+            @Claim(key = "email", value = "admin@example.com"),
+            @Claim(key = "given_name", value = "Ada"),
+            @Claim(key = "family_name", value = "Admin"),
+            @Claim(key = "phone_number", value = "+41791234569")
+    })
+    public void testMeEndpointWithoutSubjectClaimUsesProfileClaims() {
+        given()
+                .when().get("/api/users/me")
+                .then()
+                .statusCode(200)
+                .body("username", is("admin"))
+                .body("email", is("admin@example.com"))
+                .body("firstName", is("Ada"))
+                .body("lastName", is("Admin"))
+                .body("phoneNumber", is("+41791234569"))
+                .body("id", is("admin@example.com"));
     }
 
     @Test

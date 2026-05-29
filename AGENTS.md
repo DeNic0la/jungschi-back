@@ -1,16 +1,17 @@
-# AGENTS.md – jungschi-back
+# AGENTS.md - jungschi-back
 
 Quarkus (Java 21) REST backend for a Swiss youth-camp registration system. Uses Gradle, Hibernate ORM with Panache (active-record pattern), Flyway migrations, PostgreSQL (prod) / H2 (test), and Keycloak OIDC.
 
 ## Key Commands
 
 ```bash
-./gradlew quarkusDev   # Dev mode with live reload; auto-starts Keycloak on port 8180
+./gradlew quarkusDev   # Dev mode with live reload; uses Postgres on 54329 and Keycloak on 8180
 ./gradlew test         # Run all tests (uses H2 in-memory DB automatically)
 ./gradlew build        # Produces build/quarkus-app/quarkus-run.jar
 ```
 
 Dev UI: http://localhost:8080/q/dev/ (only in dev mode)
+Local database from the parent repo: `docker compose up -d postgres`
 
 ## Architecture
 
@@ -23,26 +24,42 @@ ch.denic0la
 ```
 
 **Domain model:**
-- `AppUser` (PK = `oidcSubject`) → owns many `Participant`s
-- `Participant` → has one `HealthStats`, one `CampStats`, many `IntoleranceSelection`s
+- `AppUser` (PK = email) stores OIDC subject, profile claims, roles, and last-seen data
+- `Household` links primary and secondary contacts and owns participant access
+- `Participant` belongs to a `Household` and has one `HealthStats`, one `CampStats`, and many `IntoleranceSelection`s
+- `Camp`, `Room`, `SignUp`, `CampParticipant`, and `CampParticipantMedication` model camp registration
 - `GlobalIntoleranceDefinitions` – seeded reference data (food intolerances, allergies)
 
 ## Critical Patterns
 
-**User provisioning:** Every mutating endpoint calls `provisioningService.ensureCurrentUser()`, which auto-creates an `AppUser` on first login from JWT/UserInfo claims. Read-only endpoints use `getCurrentUser()` (throws if user doesn't exist). Never access `AppUser` directly without going through this service.
+**User provisioning:** Mutating user-facing endpoints call `provisioningService.ensureCurrentUser()`, which creates or updates an `AppUser` from JWT/UserInfo claims. Read-only endpoints may use `getCurrentUser()` and should fail clearly if the user does not exist.
 
-**Data isolation:** All user data is scoped to `oidcSubject`. Queries always filter by the current user's OIDC subject, e.g.:
+**Household access:** Participant data is scoped through `Household`, not direct user ownership. Use `CurrentUserProvisioningService` helpers such as `findHouseholdForContact`, `isHouseholdContact`, `canReadParticipant`, and `canWriteParticipant` instead of open-coded checks.
+
 ```java
-Participant.list("user.oidcSubject", user.oidcSubject)
+if (!provisioningService.canWriteParticipant(participant, currentUser)) {
+    throw new NotFoundException();
+}
 ```
 
-**Two access tiers:**
-- Regular users: `controller/` package – data scoped to self
-- Team admins: `team/` package – `@RolesAllowed("Jungschiteam")` – sees all participants
+**Roles:**
+- `guardian`: regular family/contact user.
+- `ADMIN`: can read/write participant data and administer broadly.
+- `Jungschiteam`: can read team participant views.
+- `Sanitaet`: can read health-relevant participant data.
+
+Keep role spelling aligned with `src/main/resources/dev-realm.json`.
+
+**Participant creation:** Creating a participant currently ensures a household for the current user and attaches the participant to that household.
+
+**Team/admin routes:** Team-facing endpoints live in `team/` and are role-gated, for example:
+```java
+@RolesAllowed({"Jungschiteam", "ADMIN", "Sanitaet"})
+```
 
 **DTOs as records:** Each controller defines its own DTOs as inner Java records. No shared DTO classes.
 
-**Security is active in dev mode:** `quarkus.security.auth.enabled-in-dev-mode=true`. Dev Keycloak uses `src/main/resources/quarkus-realm.json`.
+**Security is active in dev mode:** `quarkus.security.auth.enabled-in-dev-mode=true`. Dev Keycloak uses `src/main/resources/dev-realm.json`.
 
 ## Configuration
 
@@ -54,7 +71,7 @@ Participant.list("user.oidcSubject", user.oidcSubject)
 
 ## Database Migrations
 
-Flyway SQL files in `src/main/resources/db/migration/`. Follow existing naming: `V{n}__{Description}.sql`. Schema strategy is `validate` (Hibernate does not auto-DDL).
+Flyway SQL files live in `src/main/resources/db/migration/`. Follow the current versioned naming pattern, keep migrations append-only, and keep SQL aligned with Hibernate validation. Hibernate schema strategy is `validate`; it does not auto-create production schema.
 
 ## Testing
 
@@ -76,8 +93,10 @@ Use a unique `sub` value per test class to avoid cross-test data leakage (H2 is 
 | `PUT /api/participants/{id}/health-stats` | Authenticated user |
 | `PUT /api/participants/{id}/camp-stats` | Authenticated user |
 | `GET/POST/DELETE /api/participants/{id}/intolerances` | Authenticated user |
+| `GET /api/camps/**` | Authenticated user, role-aware visibility |
+| `GET /api/rooms/**` | Authenticated user, role-aware visibility |
 | `GET /api/global-definitions/food-intolerances` | Any authenticated |
 | `GET /api/global-definitions/allergies` | Any authenticated |
 | `GET/PUT /api/users/me` | Authenticated user |
-| `GET /api/team/participants/**` | `Jungschiteam` role only |
+| `GET /api/team/participants/**` | `Jungschiteam`, `ADMIN`, or `Sanitaet` |
 

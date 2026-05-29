@@ -20,17 +20,24 @@ public class Participant extends PanacheEntity {
     @Column(name = "last_updated_at")
     public LocalDateTime lastUpdatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
+    public Gender gender;
+
     @ManyToOne
-    @JoinColumn(name = "app_user_id")
-    public AppUser user;
+    @JoinColumn(name = "household_id")
+    public Household household;
 
     @OneToOne(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
     public HealthStats healthStats;
 
     @OneToOne(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
-    public CampStats campStats;
+    public ParticipantGeneralData participantGeneralData;
 
     @OneToMany(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<IntoleranceSelection> intoleranceSelections = new ArrayList<>();
+
+    @OneToMany(mappedBy = "participant")
+    public List<CampParticipant> campParticipants = new ArrayList<>();
 
 }

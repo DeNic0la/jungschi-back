@@ -16,19 +16,21 @@ public class ParticipantControllerTest {
     @TestSecurity(user = "test-user", roles = {"user"})
     @OidcSecurity(claims = {
             @Claim(key = "sub", value = "participant-test-sub"),
-            @Claim(key = "preferred_username", value = "testuser")
+            @Claim(key = "preferred_username", value = "testuser"),
+            @Claim(key = "email", value = "participant-test@example.com")
     })
     public void testParticipantCrud() {
         // Create
         Object id = given()
                 .contentType("application/json")
-                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\"}")
+                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\", \"gender\": \"male\"}")
                 .when().post("/api/participants")
                 .then()
                 .statusCode(200)
                 .body("firstname", is("John"))
                 .body("lastname", is("Doe"))
                 .body("dateOfBirth", is("2000-01-01"))
+                .body("gender", is("male"))
                 .body("id", notNullValue())
                 .extract().path("id");
 
@@ -47,16 +49,18 @@ public class ParticipantControllerTest {
                 .then()
                 .statusCode(200)
                 .body("firstname", is("John"))
+                .body("gender", is("male"))
                 .body("id", is(id));
 
         // Update
         given()
                 .contentType("application/json")
-                .body("{\"firstname\": \"Jane\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\"}")
+                .body("{\"firstname\": \"Jane\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\", \"gender\": \"female\"}")
                 .when().put("/api/participants/" + id)
                 .then()
                 .statusCode(200)
                 .body("firstname", is("Jane"))
+                .body("gender", is("female"))
                 .body("id", is(id));
 
         // Delete
@@ -77,13 +81,14 @@ public class ParticipantControllerTest {
     @TestSecurity(user = "test-user", roles = {"user"})
     @OidcSecurity(claims = {
             @Claim(key = "sub", value = "participant-test-sub"),
-            @Claim(key = "preferred_username", value = "testuser")
+            @Claim(key = "preferred_username", value = "testuser"),
+            @Claim(key = "email", value = "participant-test@example.com")
     })
     public void testParticipantInfo() {
         // Create a participant
         Integer idInt = given()
                 .contentType("application/json")
-                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\"}")
+                .body("{\"firstname\": \"John\", \"lastname\": \"Doe\", \"dateOfBirth\": \"2000-01-01\", \"gender\": \"male\"}")
                 .when().post("/api/participants")
                 .then()
                 .statusCode(200)
@@ -96,6 +101,7 @@ public class ParticipantControllerTest {
                 .then()
                 .statusCode(200)
                 .body("firstname", is("John"))
+                .body("gender", is("male"))
                 .body("healthStats", is(false))
                 .body("campStats", is(false));
 
@@ -118,7 +124,7 @@ public class ParticipantControllerTest {
         // Create camp stats for this participant
         given()
                 .contentType("application/json")
-                .body("{\"isTickVaccinated\": true, \"drugConsent\": true, \"ahv\": \"123\", \"krankenkasse\": \"AOK\", \"notes\": \"\"}")
+                .body("{\"isTickVaccinated\": true, \"ahv\": \"123\", \"krankenkasse\": \"AOK\", \"notes\": \"\"}")
                 .when().put("/api/participants/" + id + "/camp-stats")
                 .then()
                 .statusCode(200);
@@ -141,8 +147,9 @@ public class ParticipantControllerTest {
     @Test
     @TestSecurity(user = "other-user", roles = {"user"})
     @OidcSecurity(claims = {
-            @Claim(key = "sub", value = "user2"),
-            @Claim(key = "preferred_username", value = "user2")
+            @Claim(key = "sub", value = "user2-participant"),
+            @Claim(key = "preferred_username", value = "user2-participant"),
+            @Claim(key = "email", value = "user2@example.com")
     })
     public void testIsolation() {
         given()

@@ -5,6 +5,7 @@ import ch.denic0la.model.AppUser;
 import ch.denic0la.model.GlobalIntoleranceDefinitions;
 import ch.denic0la.model.IntoleranceSelection;
 import ch.denic0la.model.Participant;
+import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 @Path("/api/participants/{participantId}/intolerance-selections")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated
 public class IntoleranceSelectionController {
 
     @Inject
@@ -26,7 +28,7 @@ public class IntoleranceSelectionController {
     public List<IntoleranceSelectionDto> get(@PathParam("participantId") Long participantId) {
         AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
-        if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
+        if (!provisioningService.canReadParticipant(p, user)) {
             throw new NotFoundException("Participant not found");
         }
 
@@ -41,7 +43,7 @@ public class IntoleranceSelectionController {
     public IntoleranceSelectionDto update(@PathParam("participantId") Long participantId, IntoleranceSelectionDto dto) {
         AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
-        if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
+        if (!provisioningService.canWriteParticipant(p, user)) {
             throw new NotFoundException("Participant not found");
         }
 
@@ -79,7 +81,7 @@ public class IntoleranceSelectionController {
     public void delete(@PathParam("participantId") Long participantId, @QueryParam("intoleranceId") Long intoleranceId) {
         AppUser user = provisioningService.getCurrentUser();
         Participant p = Participant.findById(participantId);
-        if (p == null || !p.user.oidcSubject.equals(user.oidcSubject)) {
+        if (!provisioningService.canWriteParticipant(p, user)) {
             throw new NotFoundException("Participant not found");
         }
 

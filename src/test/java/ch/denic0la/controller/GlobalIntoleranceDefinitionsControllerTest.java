@@ -37,7 +37,8 @@ public class GlobalIntoleranceDefinitionsControllerTest {
     @TestSecurity(user = "test-user", roles = {"user"})
     @OidcSecurity(claims = {
             @Claim(key = "sub", value = "test-sub"),
-            @Claim(key = "preferred_username", value = "testuser")
+            @Claim(key = "preferred_username", value = "testuser"),
+            @Claim(key = "email", value = "global-definitions@example.com")
     })
     public void testGetFoodIntolerances() {
         given()
@@ -53,7 +54,8 @@ public class GlobalIntoleranceDefinitionsControllerTest {
     @TestSecurity(user = "test-user", roles = {"user"})
     @OidcSecurity(claims = {
             @Claim(key = "sub", value = "test-sub"),
-            @Claim(key = "preferred_username", value = "testuser")
+            @Claim(key = "preferred_username", value = "testuser"),
+            @Claim(key = "email", value = "global-definitions@example.com")
     })
     public void testGetAllergies() {
         given()
